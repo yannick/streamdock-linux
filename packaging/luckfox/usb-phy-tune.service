@@ -1,0 +1,13 @@
+# USB PHY tuning for the dock directly on USB-A, without a hub (H15-98): see usb-phy-tune.py.
+[Unit]
+Description=Tune the RV1106 USB PHY for the StreamDock on USB-A
+After=systemd-udevd.service
+Before=streamdockd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/python3 /usr/local/lib/streamdockd/usb-phy-tune.py
+
+[Install]
+WantedBy=multi-user.target

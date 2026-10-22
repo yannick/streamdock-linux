@@ -1,0 +1,60 @@
+From: streamdockd authors
+Subject: [PATCH] luckfox-pico-ultra: hidraw + USB HID, USB host mode, model Ultra W, CMA 1M (H15-34)
+
+The StreamDock needs hidraw and the board's USB as host; Luckfox's Wi-Fi/BT scripts start only for the model "Luckfox Pico Ultra W"; no camera, so the CMA reservation drops to 1M (~65 MB RAM back).
+
+---
+diff --git a/project/cfg/BoardConfig_IPC/BoardConfig-EMMC-Buildroot-RV1106_Luckfox_Pico_Ultra-IPC.mk b/project/cfg/BoardConfig_IPC/BoardConfig-EMMC-Buildroot-RV1106_Luckfox_Pico_Ultra-IPC.mk
+index e485631e6..8a2395248 100755
+--- a/project/cfg/BoardConfig_IPC/BoardConfig-EMMC-Buildroot-RV1106_Luckfox_Pico_Ultra-IPC.mk
++++ b/project/cfg/BoardConfig_IPC/BoardConfig-EMMC-Buildroot-RV1106_Luckfox_Pico_Ultra-IPC.mk
+@@ -11,7 +11,7 @@ export RK_CHIP=rv1106
+ export RK_APP_TYPE=RKIPC_RV1106
+ 
+ # Config CMA size in environment
+-export RK_BOOTARGS_CMA_SIZE="66M"
++export RK_BOOTARGS_CMA_SIZE="1M"
+ 
+ # Kernel dts
+ export RK_KERNEL_DTS=rv1106g-luckfox-pico-ultra.dts
+diff --git a/sysdrv/source/kernel/arch/arm/boot/dts/rv1106g-luckfox-pico-ultra.dts b/sysdrv/source/kernel/arch/arm/boot/dts/rv1106g-luckfox-pico-ultra.dts
+index b9d243e68..04c6ca17a 100755
+--- a/sysdrv/source/kernel/arch/arm/boot/dts/rv1106g-luckfox-pico-ultra.dts
++++ b/sysdrv/source/kernel/arch/arm/boot/dts/rv1106g-luckfox-pico-ultra.dts
+@@ -10,7 +10,7 @@
+ #include <dt-bindings/display/media-bus-format.h>
+ 
+ / {
+-	model = "Luckfox Pico Ultra";
++	model = "Luckfox Pico Ultra W"; /* H15-34: our board is the W; Luckfox scripts start WiFi/BT only for this model */
+ 	compatible = "rockchip,rv1103g-38x38-ipc-v10", "rockchip,rv1106g3";
+ 
+ 	restart-poweroff {
+@@ -113,8 +113,8 @@ &gmac {
+ /**********USB**********/
+ &usbdrd_dwc3 {
+ 	status = "okay";
+-	dr_mode = "peripheral";
+-	//dr_mode = "host";
++	//dr_mode = "peripheral";
++	dr_mode = "host"; /* H15-34: the StreamDock and a USB soundcard plug in here */
+ };
+ 
+ /**********RTC**********/
+diff --git a/sysdrv/source/kernel/arch/arm/configs/luckfox_rv1106_linux_defconfig b/sysdrv/source/kernel/arch/arm/configs/luckfox_rv1106_linux_defconfig
+index 203ce2997..7a2f26b99 100755
+--- a/sysdrv/source/kernel/arch/arm/configs/luckfox_rv1106_linux_defconfig
++++ b/sysdrv/source/kernel/arch/arm/configs/luckfox_rv1106_linux_defconfig
+@@ -367,8 +367,10 @@ CONFIG_SND_SOC_ROCKCHIP=y
+ CONFIG_SND_SOC_ROCKCHIP_I2S_TDM=y
+ CONFIG_SND_SOC_RV1106=y
+ CONFIG_SND_SIMPLE_CARD=y
+-# CONFIG_HID is not set
+-# CONFIG_USB_HID is not set
++CONFIG_HID=y
++CONFIG_HIDRAW=y
++CONFIG_HID_GENERIC=y
++CONFIG_USB_HID=y
+ CONFIG_USB=y
+ CONFIG_USB_OTG=y
+ CONFIG_USB_XHCI_HCD=y

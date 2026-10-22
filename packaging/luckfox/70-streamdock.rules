@@ -1,0 +1,4 @@
+# StreamDock 293s / N3 (USB 6603:1003) on a headless board: group plugdev, which the
+# streamdockd service joins (packaging/luckfox/streamdockd.service).
+SUBSYSTEM=="usb", ATTR{idVendor}=="6603", ATTR{idProduct}=="1003", MODE="0660", GROUP="plugdev"
+KERNEL=="hidraw*", ATTRS{idVendor}=="6603", ATTRS{idProduct}=="1003", MODE="0660", GROUP="plugdev"

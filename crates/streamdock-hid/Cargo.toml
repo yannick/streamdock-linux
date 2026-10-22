@@ -1,0 +1,23 @@
+[package]
+name = "streamdock-hid"
+description = "USB HID driver for the StreamDock N3 / Ajazz AKP03 family (6603:1003): 6 LCD keys, 3 buttons, 3 knobs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+futures-lite = "2"
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
+mirajazz = "0.16.2"
+thiserror.workspace = true
+tokio = { workspace = true, features = ["time"] }
+tracing.workspace = true
+
+[dev-dependencies]
+anyhow.workspace = true
+tracing-subscriber.workspace = true
+tokio = { workspace = true, features = ["time", "macros", "rt-multi-thread", "signal"] }
+
+[lints]
+workspace = true

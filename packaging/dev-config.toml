@@ -1,0 +1,10 @@
+# Safe dev instance (`just dev`): the simulated dock only, demo modes only, loopback only (no mDNS).
+# Never put real integrations (Home Assistant, Lyrion, custom keys with webhooks) here: key
+# presses, including the simulated dock's, would send real calls (H15-33).
+listen = "127.0.0.1:7397"
+hardware = false
+fake_device = true
+fake_input = true
+
+[modules.demo]
+pages = 3

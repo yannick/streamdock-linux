@@ -1,0 +1,17 @@
+#!/bin/sh
+# Quality gate before every commit (H15-36): formatting, clippy with complexity limits, buf lint,
+# ESLint with complexity limits and the TypeScript check. Enable with `just install-hooks`.
+# Tests are left to `just check` (they take longer). Skip once with `git commit --no-verify`.
+set -eu
+cd "$(git rev-parse --show-toplevel)"
+if ! command -v just >/dev/null 2>&1; then
+    echo "pre-commit: 'just' is not installed; skipping the quality gate" >&2
+    exit 0
+fi
+# The web build is checked by `pnpm typecheck` in `just lint`; skip it inside cargo.
+export STREAMDOCKD_SKIP_WEB_BUILD=1
+if ! just lint; then
+    echo >&2
+    echo "pre-commit: the quality gate failed (see above). Fix it, or skip once with git commit --no-verify." >&2
+    exit 1
+fi

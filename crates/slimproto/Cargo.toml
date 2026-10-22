@@ -1,0 +1,20 @@
+[package]
+name = "slimproto"
+description = "Lyrion Music Server player protocol (Slimproto), client side: the built-in player's protocol half (H15-55)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+bytes = "1"
+thiserror.workspace = true
+tokio = { workspace = true, features = ["net", "io-util", "time", "sync", "rt"] }
+tracing.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["net", "io-util", "time", "sync", "rt", "macros", "rt-multi-thread"] }
+tracing-subscriber.workspace = true

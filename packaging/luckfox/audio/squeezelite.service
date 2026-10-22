@@ -1,0 +1,21 @@
+# Squeezelite (Lyrion player) in the "sound" user's PipeWire session (H15-38), so it can play on
+# the built-in speaker output, a USB soundcard or a Bluetooth speaker, whatever PipeWire's
+# default sink is. Replaces the image's SysV squeezelite, which held the codec directly.
+# `-r 44100` (H15-46): Lyrion downsamples hi-res to 44.1 kHz; Bluetooth (LDAC, adaptive
+# ~330-410 kbit/s over the 1.5 Mbaud UART) can't carry more anyway. Not `-c pcm`: our Lyrion
+# server can't transcode MP3 to PCM and stops at once. Decoding MP3/FLAC costs ~10 % CPU here.
+# `-a 200:4`: a 200 ms output buffer, so a busy moment on the single core doesn't drop audio; its
+# output thread runs realtime (limits.d/95-sound-realtime.conf, H15-50). This legacy fallback
+# plays directly to the default output; native DSP applies only to the built-in player and Assist.
+[Unit]
+Description=Squeezelite (Lyrion player) via PipeWire
+After=pipewire.service pipewire-pulse.service wireplumber.service
+Wants=pipewire.service wireplumber.service
+
+[Service]
+ExecStart=/usr/bin/squeezelite -n %H -o pipewire -r 44100 -a 200:4
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

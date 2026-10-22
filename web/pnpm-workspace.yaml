@@ -1,0 +1,3 @@
+# pnpm 12 runs dependency build scripts only when allowed (esbuild needs its postinstall).
+allowBuilds:
+  esbuild: true

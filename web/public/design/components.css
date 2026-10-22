@@ -1,0 +1,1229 @@
+/*
+ * streamdock design system: base styles and components (H15-11). Uses only tokens.css.
+ * Class names are BEM-ish with the `sd-` prefix; states use data attributes or ARIA
+ * (aria-pressed, aria-checked, aria-selected, data-state) so React and plain markup share them.
+ * Mobile first: one column below 768 px, every control at least --sd-touch high.
+ */
+
+/* ---------- Base ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.sd-app {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background:
+    linear-gradient(var(--sd-color-grid) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(90deg, var(--sd-color-grid) 1px, transparent 1px) 0 0 / 28px 28px,
+    radial-gradient(ellipse at 50% -20%, var(--sd-color-accent-faint), transparent 60%),
+    var(--sd-color-bg);
+  color: var(--sd-color-text);
+  font-family: var(--sd-font-display);
+  font-size: var(--sd-font-size-md);
+  line-height: var(--sd-line-height);
+  letter-spacing: var(--sd-tracking-normal);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* CRT scanlines over everything; never catches input */
+.sd-app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: var(--sd-z-overlay);
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 2px, rgb(0 0 0 / var(--sd-scanline-opacity)) 2px 3px);
+}
+
+.sd-app :focus-visible {
+  outline: var(--sd-border-strong) solid var(--sd-color-focus);
+  outline-offset: 2px;
+}
+
+.sd-container {
+  width: 100%;
+  max-width: var(--sd-container);
+  margin-inline: auto;
+  padding: var(--sd-space-4);
+}
+
+@media (min-width: 768px) {
+  .sd-container {
+    padding: var(--sd-space-5) var(--sd-space-6);
+  }
+}
+
+/* ---------- Layout utilities ---------- */
+
+.sd-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sd-gap, var(--sd-space-4));
+}
+.sd-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sd-gap, var(--sd-space-3));
+}
+.sd-grid {
+  display: grid;
+  gap: var(--sd-gap, var(--sd-space-4));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--sd-grid-min, 280px)), 1fr));
+}
+.sd-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- Typography ---------- */
+
+.sd-title {
+  margin: 0;
+  font-size: var(--sd-font-size-xl);
+  font-weight: var(--sd-font-weight-bold);
+  letter-spacing: var(--sd-tracking-wider);
+  text-transform: uppercase;
+  color: var(--sd-color-accent);
+  text-shadow: var(--sd-glow-text);
+}
+.sd-label {
+  font-size: var(--sd-font-size-xs);
+  font-weight: var(--sd-font-weight-medium);
+  letter-spacing: var(--sd-tracking-wide);
+  text-transform: uppercase;
+  color: var(--sd-color-text-muted);
+}
+.sd-mono {
+  font-family: var(--sd-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.sd-section-title {
+  margin: var(--sd-space-5) 0 var(--sd-space-2);
+  padding-bottom: var(--sd-space-1);
+  border-bottom: var(--sd-border) solid var(--sd-color-line);
+  font-size: var(--sd-font-size-md);
+  font-weight: var(--sd-font-weight-medium);
+  color: var(--sd-color-text-strong);
+}
+.sd-section-title:first-child {
+  margin-top: 0;
+}
+
+/* ---------- Disclosure: a section title that folds its content (H15-53) ---------- */
+/* Markup: details.sd-disclosure[open] > summary.sd-disclosure__summary (__title, __aside), then
+   .sd-disclosure__body. */
+.sd-disclosure {
+  border-bottom: var(--sd-border) solid var(--sd-color-line);
+}
+.sd-disclosure__summary {
+  display: flex;
+  align-items: center;
+  gap: var(--sd-space-2);
+  min-height: var(--sd-touch);
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--sd-font-size-md);
+  font-weight: var(--sd-font-weight-medium);
+  color: var(--sd-color-text-strong);
+}
+.sd-disclosure__summary::-webkit-details-marker {
+  display: none;
+}
+.sd-disclosure__summary::before {
+  content: "▸";
+  color: var(--sd-color-accent);
+  transition: rotate var(--sd-dur-fast) var(--sd-ease);
+}
+.sd-disclosure[open] > .sd-disclosure__summary::before {
+  rotate: 90deg;
+}
+.sd-disclosure__summary:hover,
+.sd-disclosure__summary:focus-visible {
+  color: var(--sd-color-accent);
+  outline: none;
+}
+.sd-disclosure__title {
+  flex: 1;
+}
+.sd-disclosure__aside {
+  font-size: var(--sd-font-size-xs);
+  letter-spacing: var(--sd-tracking-wide);
+  text-transform: uppercase;
+  color: var(--sd-color-text-muted);
+}
+.sd-disclosure__body {
+  display: grid;
+  gap: var(--sd-space-3);
+  padding-bottom: var(--sd-space-4);
+}
+
+/* ---------- Chamfered frame (shared by panel, button, badge, tile) ---------- */
+/* The frame is two clipped layers: ::before draws the line, ::after the fill inset by the border.
+   Content sits above them. Set --sd-cut to change the corner size. */
+
+.sd-frame {
+  --sd-cut: var(--sd-cut-md);
+  --sd-frame-line: var(--sd-color-line);
+  --sd-frame-fill: var(--sd-color-surface);
+  --sd-chamfer: polygon(
+    0 0,
+    calc(100% - var(--sd-cut)) 0,
+    100% var(--sd-cut),
+    100% 100%,
+    var(--sd-cut) 100%,
+    0 calc(100% - var(--sd-cut))
+  );
+  position: relative;
+  isolation: isolate;
+}
+.sd-frame::before,
+.sd-frame::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  clip-path: var(--sd-chamfer);
+  transition: background var(--sd-dur-base) var(--sd-ease);
+}
+.sd-frame::before {
+  inset: 0;
+  background: var(--sd-frame-line);
+}
+.sd-frame::after {
+  inset: var(--sd-border);
+  background: var(--sd-frame-fill);
+}
+
+/* ---------- Panel ---------- */
+
+.sd-panel {
+  --sd-cut: var(--sd-cut-lg);
+  padding: var(--sd-space-4);
+}
+@media (min-width: 768px) {
+  .sd-panel {
+    padding: var(--sd-space-5);
+  }
+}
+.sd-panel--accent {
+  --sd-frame-line: var(--sd-color-line-strong);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--sd-color-accent) 30%, transparent));
+}
+.sd-panel__header {
+  display: flex;
+  align-items: center;
+  gap: var(--sd-space-2);
+  margin: calc(-1 * var(--sd-space-2)) 0 var(--sd-space-4);
+  font-size: var(--sd-font-size-sm);
+  font-weight: var(--sd-font-weight-bold);
+  letter-spacing: var(--sd-tracking-wider);
+  text-transform: uppercase;
+  color: var(--sd-color-accent);
+}
+/* little barcode marker like the game's panel headers */
+.sd-panel__header::before {
+  content: "";
+  flex: none;
+  width: 22px;
+  height: 10px;
+  background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 4px, currentColor 4px 5px, transparent 5px 8px);
+  opacity: 0.8;
+}
+.sd-panel__header-aside {
+  margin-left: auto;
+  font-size: var(--sd-font-size-xs);
+  font-weight: var(--sd-font-weight-regular);
+  color: var(--sd-color-text-muted);
+  letter-spacing: var(--sd-tracking-wide);
+}
+
+/* ---------- Keycap ---------- */
+
+.sd-keycap {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.6em;
+  height: 1.6em;
+  padding: 0 0.3em;
+  border: var(--sd-border) solid currentColor;
+  font-family: var(--sd-font-mono);
+  font-size: 0.8em;
+  line-height: 1;
+  color: var(--sd-color-accent);
+}
+
+/* ---------- Button ---------- */
+
+.sd-button {
+  --sd-cut: var(--sd-cut-sm);
+  --sd-frame-line: var(--sd-color-line-strong);
+  --sd-frame-fill: var(--sd-color-surface-sunken);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sd-space-2);
+  min-height: var(--sd-touch);
+  padding: 0 var(--sd-space-5);
+  border: 0;
+  background: none;
+  color: var(--sd-color-accent);
+  font: inherit;
+  font-weight: var(--sd-font-weight-medium);
+  letter-spacing: var(--sd-tracking-wide);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--sd-dur-fast) var(--sd-ease);
+}
+.sd-button:hover {
+  --sd-frame-fill: var(--sd-color-accent-faint);
+  color: var(--sd-color-accent-strong);
+}
+.sd-button:active,
+.sd-button[aria-pressed="true"] {
+  --sd-frame-fill: var(--sd-color-accent);
+  color: var(--sd-color-on-accent);
+}
+.sd-button--primary {
+  --sd-frame-fill: var(--sd-color-accent);
+  color: var(--sd-color-on-accent);
+}
+.sd-button--primary:hover {
+  --sd-frame-fill: var(--sd-color-accent-strong);
+  color: var(--sd-color-on-accent);
+}
+.sd-button--sm {
+  min-height: 36px;
+  padding: 0 var(--sd-space-3);
+  font-size: var(--sd-font-size-sm);
+}
+@media (pointer: coarse) {
+  .sd-button--sm {
+    min-height: var(--sd-touch);
+  }
+}
+.sd-button--ghost {
+  --sd-frame-line: transparent;
+  --sd-frame-fill: transparent;
+}
+.sd-button:disabled {
+  --sd-frame-line: var(--sd-color-line-faint);
+  --sd-frame-fill: transparent;
+  color: var(--sd-color-text-dim);
+  cursor: not-allowed;
+}
+
+/* ---------- Tabs (top menu with keycap hints) ---------- */
+
+.sd-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--sd-space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: var(--sd-border) solid var(--sd-color-line);
+}
+.sd-tabs::-webkit-scrollbar {
+  display: none;
+}
+.sd-tabs__tab {
+  flex: none;
+  min-height: var(--sd-touch);
+  padding: 0 var(--sd-space-3);
+  border: 0;
+  border-bottom: var(--sd-border-strong) solid transparent;
+  background: none;
+  color: var(--sd-color-text-muted);
+  font: inherit;
+  font-size: var(--sd-font-size-lg);
+  letter-spacing: var(--sd-tracking-wide);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--sd-dur-fast) var(--sd-ease);
+}
+.sd-tabs__tab:hover {
+  color: var(--sd-color-text);
+}
+.sd-tabs__tab[aria-selected="true"] {
+  color: var(--sd-color-accent);
+  border-bottom-color: var(--sd-color-accent);
+  text-shadow: var(--sd-glow-text);
+}
+
+/* ---------- Menu list (settings rows, quickhack list) ---------- */
+
+.sd-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sd-list__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sd-space-2) var(--sd-space-4);
+  min-height: var(--sd-touch);
+  padding: var(--sd-space-1) var(--sd-space-2) var(--sd-space-1) var(--sd-space-3);
+  border-left: var(--sd-border-strong) solid transparent;
+  transition: background var(--sd-dur-fast) var(--sd-ease);
+}
+.sd-list__row:hover {
+  background: var(--sd-color-hover);
+}
+.sd-list__row[data-selected="true"] {
+  border-left-color: var(--sd-color-accent);
+  background: linear-gradient(90deg, var(--sd-color-accent-faint), transparent);
+}
+.sd-list__label {
+  color: var(--sd-color-accent);
+}
+.sd-list__control {
+  flex: 1 1 100%;
+}
+@media (min-width: 480px) {
+  .sd-list__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 260px);
+  }
+}
+
+/* ---------- Toggle (segmented OFF | ON) ---------- */
+
+.sd-toggle {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  min-width: 180px;
+  min-height: var(--sd-touch);
+  padding: 0;
+  border: var(--sd-border) solid var(--sd-color-line);
+  background: var(--sd-color-surface-sunken);
+  font: inherit;
+  cursor: pointer;
+}
+.sd-toggle__side {
+  display: grid;
+  place-items: center;
+  font-size: var(--sd-font-size-sm);
+  letter-spacing: var(--sd-tracking-wide);
+  text-transform: uppercase;
+  color: var(--sd-color-text-dim);
+  transition: background var(--sd-dur-fast) var(--sd-ease), color var(--sd-dur-fast) var(--sd-ease);
+}
+.sd-toggle[aria-checked="false"] .sd-toggle__off,
+.sd-toggle[aria-checked="true"] .sd-toggle__on {
+  color: var(--sd-color-on-accent);
+  font-weight: var(--sd-font-weight-bold);
+}
+.sd-toggle[aria-checked="false"] .sd-toggle__off {
+  background: var(--sd-color-accent-muted);
+  color: var(--sd-color-text-strong);
+}
+.sd-toggle[aria-checked="true"] .sd-toggle__on {
+  background: var(--sd-color-accent);
+  clip-path: polygon(0 0, 100% 0, 100% 70%, calc(100% - 8px) 100%, 0 100%);
+}
+
+/* ---------- Stepper (◁ value ▷) ---------- */
+
+.sd-stepper {
+  display: grid;
+  grid-template-columns: var(--sd-touch) 1fr var(--sd-touch);
+  align-items: center;
+  width: 100%;
+  min-width: 180px;
+  min-height: var(--sd-touch);
+  border: var(--sd-border) solid var(--sd-color-line);
+  background: var(--sd-color-surface-sunken);
+}
+.sd-stepper__arrow {
+  height: 100%;
+  border: 0;
+  background: none;
+  color: var(--sd-color-text);
+  font: inherit;
+  font-size: var(--sd-font-size-sm);
+  cursor: pointer;
+}
+.sd-stepper__arrow:hover {
+  color: var(--sd-color-accent);
+}
+.sd-stepper__arrow:disabled {
+  color: var(--sd-color-text-dim);
+  cursor: default;
+}
+.sd-stepper__value {
+  position: relative;
+  text-align: center;
+  color: var(--sd-color-text-strong);
+}
+.sd-stepper__value::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 16px;
+  height: 2px;
+  translate: -50% 0;
+  background: var(--sd-color-accent);
+}
+
+/* ---------- Slider ---------- */
+
+.sd-slider {
+  --sd-value: 50%;
+  width: 100%;
+  min-height: var(--sd-touch);
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+.sd-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  background: linear-gradient(90deg, var(--sd-color-accent) var(--sd-value), var(--sd-color-line-faint) var(--sd-value));
+}
+.sd-slider::-moz-range-track {
+  height: 6px;
+  background: linear-gradient(90deg, var(--sd-color-accent) var(--sd-value), var(--sd-color-line-faint) var(--sd-value));
+}
+.sd-slider::-webkit-slider-thumb {
+  width: 12px;
+  height: 26px;
+  margin-top: -10px;
+  border: 0;
+  background: var(--sd-color-text-strong);
+  box-shadow: var(--sd-glow-md);
+  appearance: none;
+}
+.sd-slider::-moz-range-thumb {
+  width: 12px;
+  height: 26px;
+  border: 0;
+  border-radius: 0;
+  background: var(--sd-color-text-strong);
+  box-shadow: var(--sd-glow-md);
+}
+
+/* ---------- XY pad (2D control, H15-54) ---------- */
+
+.sd-xypad {
+  display: grid;
+  grid-template: "top top top" auto "left area right" 1fr "bottom bottom bottom" auto / auto 1fr auto;
+  gap: var(--sd-space-1);
+  align-items: center;
+  max-width: 360px;
+}
+.sd-xypad__label {
+  color: var(--sd-color-text-muted);
+  font-size: var(--sd-font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  justify-self: center;
+}
+.sd-xypad__label--top { grid-area: top; }
+.sd-xypad__label--bottom { grid-area: bottom; }
+.sd-xypad__label--left { grid-area: left; writing-mode: vertical-rl; transform: rotate(180deg); }
+.sd-xypad__label--right { grid-area: right; writing-mode: vertical-rl; }
+.sd-xypad__area {
+  --sd-x: 50%;
+  --sd-y: 50%;
+  grid-area: area;
+  position: relative;
+  aspect-ratio: 1;
+  min-width: calc(var(--sd-touch) * 4);
+  border: 1px solid var(--sd-color-line);
+  background:
+    linear-gradient(var(--sd-color-line-faint), var(--sd-color-line-faint)) center / 1px 100% no-repeat,
+    linear-gradient(var(--sd-color-line-faint), var(--sd-color-line-faint)) center / 100% 1px no-repeat,
+    var(--sd-color-surface-sunken);
+  touch-action: none;
+  cursor: crosshair;
+}
+.sd-xypad__area:focus-visible { outline: 2px solid var(--sd-color-accent); outline-offset: 2px; }
+.sd-xypad__dot {
+  position: absolute;
+  left: var(--sd-x);
+  top: var(--sd-y);
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  background: var(--sd-color-accent);
+  box-shadow: var(--sd-glow-md);
+  pointer-events: none;
+}
+
+/* ---------- Badge / status chip ---------- */
+
+.sd-badge {
+  --sd-cut: 4px;
+  --sd-tone: var(--sd-color-accent);
+  --sd-frame-line: var(--sd-tone);
+  --sd-frame-fill: color-mix(in srgb, var(--sd-tone) 14%, var(--sd-color-bg));
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sd-space-1);
+  padding: 2px var(--sd-space-2);
+  font-size: var(--sd-font-size-xs);
+  font-weight: var(--sd-font-weight-bold);
+  letter-spacing: var(--sd-tracking-wide);
+  text-transform: uppercase;
+  color: var(--sd-tone);
+}
+.sd-badge[data-tone="success"] {
+  --sd-tone: var(--sd-color-success);
+}
+.sd-badge[data-tone="warning"] {
+  --sd-tone: var(--sd-color-warning);
+}
+.sd-badge[data-tone="info"] {
+  --sd-tone: var(--sd-color-info);
+}
+.sd-badge[data-tone="muted"] {
+  --sd-tone: var(--sd-color-text-dim);
+}
+.sd-badge[data-tone="critical"] {
+  --sd-tone: var(--sd-color-critical);
+  --sd-frame-fill: var(--sd-color-critical);
+  color: var(--sd-color-on-accent);
+  animation: sd-pulse 1.2s var(--sd-ease-step) infinite;
+}
+
+/* ---------- Readout (big number + label) ---------- */
+
+.sd-readout {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sd-readout__value {
+  font-family: var(--sd-font-mono);
+  font-size: var(--sd-font-size-2xl);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--sd-color-accent);
+  text-shadow: var(--sd-glow-text);
+}
+.sd-readout__unit {
+  margin-left: 0.15em;
+  font-size: 0.45em;
+  color: var(--sd-color-text-muted);
+}
+.sd-readout--lg .sd-readout__value {
+  font-size: var(--sd-font-size-3xl);
+}
+.sd-readout--sm .sd-readout__value {
+  font-size: var(--sd-font-size-xl);
+}
+
+/* ---------- Meter (segmented bar) ---------- */
+
+.sd-meter {
+  --sd-value: 0.5;
+  --sd-tone: var(--sd-color-accent);
+  position: relative;
+  height: 14px;
+  border: var(--sd-border) solid var(--sd-color-line);
+  background: var(--sd-color-surface-sunken);
+}
+.sd-meter__fill {
+  position: absolute;
+  inset: 2px auto 2px 2px;
+  width: calc((100% - 4px) * var(--sd-value));
+  background: repeating-linear-gradient(90deg, var(--sd-tone) 0 6px, transparent 6px 8px);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--sd-tone) 45%, transparent);
+  transition: width var(--sd-dur-slow) var(--sd-ease);
+}
+.sd-meter[data-tone="success"] {
+  --sd-tone: var(--sd-color-success);
+}
+.sd-meter[data-tone="warning"] {
+  --sd-tone: var(--sd-color-warning);
+}
+.sd-meter[data-tone="critical"] {
+  --sd-tone: var(--sd-color-critical);
+}
+
+/* ---------- Data list (briefing card) ---------- */
+
+.sd-datalist {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+.sd-datalist__item {
+  padding: var(--sd-space-2) 0;
+  border-bottom: var(--sd-border) solid var(--sd-color-line);
+}
+.sd-datalist__item:last-child {
+  border-bottom: 0;
+}
+.sd-datalist dt {
+  font-size: var(--sd-font-size-xs);
+  letter-spacing: var(--sd-tracking-wide);
+  text-transform: uppercase;
+  color: var(--sd-color-text-muted);
+}
+.sd-datalist dd {
+  margin: 2px 0 0;
+  font-size: var(--sd-font-size-lg);
+  font-weight: var(--sd-font-weight-medium);
+  letter-spacing: var(--sd-tracking-wide);
+  text-transform: uppercase;
+  color: var(--sd-color-accent);
+  overflow-wrap: anywhere;
+}
+@media (min-width: 480px) {
+  .sd-datalist--inline .sd-datalist__item {
+    display: grid;
+    grid-template-columns: 11rem 1fr;
+    align-items: baseline;
+    gap: var(--sd-space-4);
+  }
+  .sd-datalist--inline dd {
+    margin: 0;
+  }
+}
+
+/* ---------- Hint bar ([ESC] Close …) ---------- */
+
+.sd-hints {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sd-space-2) var(--sd-space-5);
+  font-size: var(--sd-font-size-sm);
+  color: var(--sd-color-text);
+}
+.sd-hints__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sd-space-2);
+}
+
+/* ---------- Dock: key tile (LCD key or plain button) ---------- */
+
+.sd-keytile {
+  --sd-cut: var(--sd-cut-sm);
+  --sd-frame-line: var(--sd-color-line);
+  --sd-frame-fill: var(--sd-color-surface-sunken);
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  width: 100%;
+  min-width: var(--sd-touch);
+  padding: var(--sd-space-2);
+  border: 0;
+  background: none;
+  color: var(--sd-color-text-muted);
+  font: inherit;
+  font-size: var(--sd-font-size-sm);
+  letter-spacing: var(--sd-tracking-wide);
+  text-transform: uppercase;
+  transition: color var(--sd-dur-fast) var(--sd-ease), filter var(--sd-dur-fast) var(--sd-ease);
+}
+.sd-keytile__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+}
+.sd-keytile__number {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-family: var(--sd-font-mono);
+  font-size: var(--sd-font-size-xs);
+  color: var(--sd-color-text-dim);
+}
+.sd-keytile--button {
+  aspect-ratio: 2 / 1;
+  --sd-frame-fill: var(--sd-color-bg);
+}
+.sd-keytile[data-state="pressed"] {
+  --sd-frame-line: var(--sd-color-accent-strong);
+  --sd-frame-fill: var(--sd-color-accent);
+  color: var(--sd-color-on-accent);
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--sd-color-accent) 70%, transparent));
+}
+.sd-keytile__flash {
+  position: absolute;
+  inset: 0;
+  clip-path: var(--sd-chamfer);
+  pointer-events: none;
+  animation: sd-keytile-flash var(--sd-dur-slow) var(--sd-ease) both;
+}
+@keyframes sd-keytile-flash {
+  from {
+    background: color-mix(in srgb, var(--sd-color-accent-2) 45%, transparent);
+  }
+  to {
+    background: transparent;
+  }
+}
+.sd-keytile[data-state="pressed"] .sd-keytile__number {
+  color: var(--sd-color-on-accent);
+}
+
+/* ---------- Dock: knob ---------- */
+/* Markup: .sd-knob > .sd-knob__grip > .sd-knob__dial > .sd-knob__indicator (rotated by --sd-angle or an inline
+   transform), then .sd-knob__label. Pressed: data-state="pressed" or .is-pressed. A turn flash:
+   .is-cw / .is-ccw on the dial. */
+
+.sd-knob {
+  --sd-angle: 0deg;
+  display: inline-grid;
+  justify-items: center;
+  gap: var(--sd-space-2);
+  min-width: var(--sd-touch);
+}
+.sd-knob__dial {
+  position: relative;
+  display: block;
+  width: 64px;
+  aspect-ratio: 1;
+  border: var(--sd-border-strong) solid var(--sd-color-line);
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(from 0deg, var(--sd-color-line-faint) 0 2deg, transparent 2deg 15deg),
+    radial-gradient(circle, var(--sd-color-accent-faint), var(--sd-color-surface-sunken) 70%);
+  transition: border-color var(--sd-dur-fast) var(--sd-ease), box-shadow var(--sd-dur-fast) var(--sd-ease);
+}
+.sd-knob__indicator {
+  position: absolute;
+  inset: 0;
+  rotate: var(--sd-angle);
+  transition: rotate var(--sd-dur-base) var(--sd-ease), transform var(--sd-dur-base) var(--sd-ease);
+}
+.sd-knob__indicator::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: calc(50% - 2px);
+  width: 4px;
+  height: 30%;
+  background: var(--sd-color-accent);
+  box-shadow: var(--sd-glow-sm);
+}
+.sd-knob[data-state="pressed"] .sd-knob__dial,
+.sd-knob.is-pressed .sd-knob__dial {
+  border-color: var(--sd-color-accent);
+  box-shadow: var(--sd-glow-md), inset 0 0 16px color-mix(in srgb, var(--sd-color-accent) 35%, transparent);
+}
+.sd-knob__dial.is-cw {
+  animation: sd-turn-cw var(--sd-dur-slow) var(--sd-ease);
+}
+.sd-knob__dial.is-ccw {
+  animation: sd-turn-ccw var(--sd-dur-slow) var(--sd-ease);
+}
+.sd-knob__label {
+  font-size: var(--sd-font-size-xs);
+  letter-spacing: var(--sd-tracking-wide);
+  text-transform: uppercase;
+  color: var(--sd-color-text-muted);
+}
+.sd-knob__pos {
+  font-family: var(--sd-font-mono);
+  color: var(--sd-color-accent);
+}
+/* A knob you can turn and press (H15-51): drag around the dial, wheel, arrow keys, ‹ › buttons. */
+.sd-knob__grip {
+  display: block;
+  border-radius: 50%;
+}
+.sd-knob--control .sd-knob__grip {
+  cursor: grab;
+  touch-action: none;
+}
+.sd-knob--control .sd-knob__grip:active {
+  cursor: grabbing;
+}
+.sd-knob--control .sd-knob__grip:hover .sd-knob__dial {
+  border-color: var(--sd-color-accent);
+}
+.sd-knob--control .sd-knob__grip:focus-visible {
+  outline: var(--sd-border-strong) solid var(--sd-color-accent);
+  outline-offset: 3px;
+}
+.sd-knob__steps {
+  display: flex;
+  gap: var(--sd-space-1);
+}
+.sd-knob__step {
+  min-width: var(--sd-touch);
+  min-height: var(--sd-touch);
+  border: var(--sd-border) solid var(--sd-color-line);
+  background: var(--sd-color-surface-sunken);
+  color: var(--sd-color-accent);
+  font: inherit;
+  font-size: var(--sd-font-size-lg);
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color var(--sd-dur-fast) var(--sd-ease), background var(--sd-dur-fast) var(--sd-ease);
+}
+.sd-knob__step:hover,
+.sd-knob__step:focus-visible {
+  border-color: var(--sd-color-accent);
+  background: var(--sd-color-accent-faint);
+  outline: none;
+}
+.sd-knob__step:active {
+  background: var(--sd-color-accent);
+  color: var(--sd-color-on-accent);
+}
+
+@keyframes sd-turn-cw {
+  from {
+    box-shadow: 6px 0 14px var(--sd-color-accent-2);
+  }
+}
+@keyframes sd-turn-ccw {
+  from {
+    box-shadow: -6px 0 14px var(--sd-color-accent-2);
+  }
+}
+
+/* ---------- Effects ---------- */
+
+.sd-glitch {
+  position: relative;
+  display: inline-block;
+}
+.sd-glitch::before,
+.sd-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  opacity: 0.65;
+  pointer-events: none;
+}
+.sd-glitch::before {
+  color: var(--sd-color-accent-2);
+  clip-path: inset(0 0 58% 0);
+  translate: -1px 0;
+}
+.sd-glitch::after {
+  color: var(--sd-color-info);
+  clip-path: inset(58% 0 0 0);
+  translate: 1px 0;
+}
+.sd-hazard {
+  background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--sd-color-critical) 22%, transparent) 0 6px, transparent 6px 12px);
+}
+.sd-flash {
+  animation: sd-flash var(--sd-dur-slow) var(--sd-ease);
+}
+
+@keyframes sd-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+@keyframes sd-flash {
+  from {
+    background-color: color-mix(in srgb, var(--sd-color-accent) 35%, transparent);
+  }
+}
+@keyframes sd-glitch {
+  50% {
+    translate: 2px -1px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sd-glitch::before {
+    animation: sd-glitch 2.6s steps(2) infinite;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sd-keytile__flash,
+  .sd-badge[data-tone="critical"],
+  .sd-knob__dial.is-cw,
+  .sd-knob__dial.is-ccw {
+    animation: none;
+  }
+}
+
+/* ---------- Text input ---------- */
+
+.sd-input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--sd-touch);
+  padding: 0 var(--sd-space-3);
+  border: var(--sd-border) solid var(--sd-color-line);
+  background: var(--sd-color-surface-sunken);
+  color: var(--sd-color-text);
+  font: inherit;
+  font-family: var(--sd-font-mono);
+}
+.sd-input:focus {
+  outline: 2px solid var(--sd-color-focus);
+  outline-offset: 1px;
+  border-color: var(--sd-color-accent);
+}
+.sd-input::placeholder {
+  color: var(--sd-color-text-dim);
+}
+
+/* ---------- Context menu (H15-32) ---------- */
+
+.sd-context-menu {
+  position: fixed;
+  z-index: var(--sd-z-overlay);
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  max-width: 240px;
+  padding: var(--sd-space-1) 0;
+  --sd-frame-line: var(--sd-color-line-strong);
+  --sd-frame-fill: var(--sd-color-surface-raised);
+  box-shadow: var(--sd-glow-md);
+}
+.sd-context-menu__title {
+  padding: var(--sd-space-1) var(--sd-space-3);
+  font-size: var(--sd-font-size-xs);
+  letter-spacing: var(--sd-tracking-wider);
+  text-transform: uppercase;
+  color: var(--sd-color-text-muted);
+}
+.sd-context-menu__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sd-space-3);
+  min-height: var(--sd-touch);
+  padding: 0 var(--sd-space-3);
+  border: 0;
+  border-left: var(--sd-border-strong) solid transparent;
+  background: none;
+  color: var(--sd-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sd-context-menu__item:hover,
+.sd-context-menu__item:focus-visible {
+  outline: none;
+  border-left-color: var(--sd-color-accent);
+  background: var(--sd-color-hover);
+  color: var(--sd-color-accent);
+}
+.sd-context-menu__item:disabled {
+  color: var(--sd-color-text-dim);
+  cursor: default;
+}
+.sd-context-menu__hint {
+  font-size: var(--sd-font-size-xs);
+  color: var(--sd-color-text-muted);
+}
+
+/* ---------- Dialog (H15-32) ---------- */
+
+.sd-dialog {
+  width: min(560px, calc(100vw - 2 * var(--sd-space-4)));
+  max-height: calc(100dvh - 2 * var(--sd-space-4));
+  padding: var(--sd-space-3);
+  border: 0;
+  color: var(--sd-color-text);
+  --sd-frame-line: var(--sd-color-line-strong);
+  --sd-frame-fill: var(--sd-color-surface-raised);
+  overflow: auto;
+}
+.sd-dialog::backdrop {
+  background: color-mix(in srgb, var(--sd-color-bg) 75%, transparent);
+  backdrop-filter: blur(2px);
+}
+.sd-dialog__body {
+  display: grid;
+  gap: var(--sd-space-3);
+  padding: var(--sd-space-3) 0;
+}
+.sd-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sd-space-2);
+}
+
+/* ---------- Inline rename (H15-32) ---------- */
+
+.sd-inline-edit {
+  cursor: text;
+}
+.sd-inline-edit__input {
+  min-height: auto;
+  padding: 0 var(--sd-space-1);
+  font: inherit;
+  text-transform: none;
+}
+
+
+/* ---------- Tab bar additions (H15-32) ---------- */
+
+.sd-tabs__add {
+  /* Always reachable, also when the tabs scroll sideways on a phone. */
+  position: sticky;
+  right: 0;
+  background: var(--sd-color-bg);
+  min-width: var(--sd-touch);
+  font-size: var(--sd-font-size-lg);
+  color: var(--sd-color-text-muted);
+}
+.sd-tabs__add:hover {
+  color: var(--sd-color-accent);
+}
+
+/* ---------- Picker: a searchable list of choices in a dialog (H15-32) ---------- */
+
+.sd-picker {
+  display: flex;
+  flex-direction: column;
+  max-height: min(50dvh, 360px);
+  overflow-y: auto;
+  border: var(--sd-border) solid var(--sd-color-line-faint);
+  background: var(--sd-color-surface-sunken);
+}
+.sd-picker__item {
+  display: grid;
+  gap: 2px;
+  min-height: var(--sd-touch);
+  padding: var(--sd-space-1) var(--sd-space-3);
+  border: 0;
+  border-left: var(--sd-border-strong) solid transparent;
+  background: none;
+  color: var(--sd-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sd-picker__item:hover {
+  background: var(--sd-color-hover);
+}
+.sd-picker__item[aria-selected="true"] {
+  border-left-color: var(--sd-color-accent);
+  background: linear-gradient(90deg, var(--sd-color-accent-faint), transparent);
+  color: var(--sd-color-accent);
+}
+.sd-picker__meta {
+  font-family: var(--sd-font-mono);
+  font-size: var(--sd-font-size-xs);
+  color: var(--sd-color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Band table (correction EQ, H15-54) ---------- */
+
+.sd-bands {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--sd-font-size-sm);
+}
+.sd-bands th {
+  color: var(--sd-color-text-muted);
+  font-weight: normal;
+  text-align: left;
+  padding: var(--sd-space-1);
+}
+.sd-bands td { padding: var(--sd-space-1); }
+.sd-bands .sd-input { width: 100%; min-width: 0; }
+
+/* ---------- Now playing (H15-88) ---------- */
+
+.sd-nowplaying {
+  --sd-np-count: 1;
+  --sd-np-index: 0;
+  position: relative;
+  display: block;
+  overflow: hidden;
+  min-height: 2.5rem;
+  border-top: 2px solid var(--sd-color-line);
+  background: var(--sd-color-surface-sunken);
+  color: var(--sd-color-text);
+  font-family: var(--sd-font-display);
+  font-size: var(--sd-font-size-lg);
+  text-transform: none;
+  letter-spacing: normal;
+  text-align: left;
+}
+.sd-nowplaying__band {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 var(--sd-space-2);
+  overflow: hidden;
+}
+.sd-nowplaying--slice {
+  /* Fills its key tile. */
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  font-size: var(--sd-font-size-md);
+}
+.sd-nowplaying--slice .sd-nowplaying__band {
+  /* The whole band is `count` tiles wide; this tile shows part `index` of it. */
+  width: calc(100% * var(--sd-np-count));
+  left: calc(-100% * var(--sd-np-index));
+}
+.sd-nowplaying:not(.sd-nowplaying--slice) .sd-nowplaying__band {
+  position: relative;
+  min-height: 2.5rem;
+}
+.sd-nowplaying__cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.22;
+  pointer-events: none;
+}
+.sd-nowplaying__text {
+  position: relative;
+  white-space: nowrap;
+  text-shadow: 0 0 4px var(--sd-color-bg), 0 0 1px var(--sd-color-bg);
+  will-change: transform;
+}
+.sd-nowplaying__text.is-cut {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.sd-nowplaying__progress {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 3px;
+  background: var(--sd-color-surface-raised);
+}
+.sd-nowplaying__bar {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--sd-color-success);
+}
+.sd-nowplaying[data-state="paused"] {
+  border-top-color: var(--sd-color-line-faint);
+  color: var(--sd-color-text-muted);
+}
+.sd-nowplaying[data-state="idle"],
+.sd-nowplaying[data-state="offline"] {
+  border-top-color: var(--sd-color-line-faint);
+  color: var(--sd-color-text-dim);
+}
+.sd-nowplaying[data-state="paused"] .sd-nowplaying__bar {
+  background: var(--sd-color-text-dim);
+}

@@ -1,0 +1,13 @@
+# Sample/reference projects, cloned separately; never committed
+/external-repos/
+# local tool settings
+.fab
+.claude/settings.local.json
+/target/
+node_modules/
+/web/dist/
+
+# Local secrets (e.g. HA_TOKEN); never commit
+.env
+# Local build settings (web/.env.local: VITE_ISSUE_URL); never commit
+.env.local

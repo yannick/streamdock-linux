@@ -1,0 +1,39 @@
+# streamdockd as a system service on a small board (Luckfox Pico Ultra, Ubuntu 22.04; H15-34).
+# Installed by packaging/luckfox/install.sh. State, config and key images live in
+# /var/lib/streamdockd (writable by the service, so the settings page can save).
+[Unit]
+Description=StreamDock daemon (web UI and API for the StreamDock N3)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/streamdockd
+Restart=on-failure
+RestartSec=2
+# SIGTERM makes streamdockd clear the dock and turn its screen off before exiting.
+KillSignal=SIGTERM
+TimeoutStopSec=5
+# Its own unprivileged system user, created by install.sh. Not DynamicUser: the board's dbus-daemon
+# (1.12) refuses dynamic users, and the settings page needs the system bus for NetworkManager and
+# BlueZ (H15-38/42). The dock's hidraw node belongs to group plugdev (70-streamdock.rules); netdev
+# and bluetooth allow Wi-Fi/Ethernet and Bluetooth (polkit rule and D-Bus policy from install.sh).
+User=streamdockd
+Group=streamdockd
+SupplementaryGroups=plugdev netdev bluetooth sound
+# The UI also on port 80 (also_listen in the config). CAP_NET_ADMIN: the live RSSI / TX power of a
+# connected Bluetooth device via `btmgmt conn-info` (kernel MGMT API; decided on H15-53).
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_ADMIN
+# H15-62: only player-output requests FIFO 10; pw-cat may request up to 20.
+# No CAP_SYS_NICE and no process-wide realtime policy.
+LimitRTPRIO=20
+StateDirectory=streamdockd
+Environment=HOME=/var/lib/streamdockd
+Environment=XDG_CONFIG_HOME=/var/lib/streamdockd
+Environment=XDG_STATE_HOME=/var/lib/streamdockd
+Environment=STREAMDOCKD_CONFIG=/var/lib/streamdockd/config.toml
+Environment=RUST_LOG=info
+Environment=STREAMDOCKD_PW_CAT_CONFIG=/usr/local/share/streamdockd/pw-cat.conf
+
+[Install]
+WantedBy=multi-user.target

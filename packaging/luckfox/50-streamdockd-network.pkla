@@ -1,0 +1,9 @@
+# streamdockd's settings page may manage Wi-Fi through NetworkManager (H15-38). The service runs as a
+# dynamic user in group netdev (streamdockd.service). polkit 0.105 (Ubuntu 22.04) reads .pkla files
+# from /etc/polkit-1/localauthority/50-local.d/; no other member of netdev exists on the board.
+[streamdockd: manage Wi-Fi]
+Identity=unix-group:netdev
+Action=org.freedesktop.NetworkManager.network-control;org.freedesktop.NetworkManager.settings.modify.system;org.freedesktop.NetworkManager.wifi.scan;org.freedesktop.NetworkManager.enable-disable-wifi
+ResultAny=yes
+ResultInactive=yes
+ResultActive=yes

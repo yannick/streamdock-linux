@@ -1,0 +1,6 @@
+# StreamDock 293s (FHOOU / Mirabox, USB 6603:1003): access without root.
+# uaccess covers a local desktop login; GROUP="users" covers SSH/tmux sessions (no seat).
+# uaccess must be applied before 73-seat-late.rules, hence the 70- prefix.
+# Install: sudo install -m644 udev/70-streamdock.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger
+SUBSYSTEM=="usb", ATTR{idVendor}=="6603", ATTR{idProduct}=="1003", MODE="0660", GROUP="users", TAG+="uaccess"
+KERNEL=="hidraw*", ATTRS{idVendor}=="6603", ATTRS{idProduct}=="1003", MODE="0660", GROUP="users", TAG+="uaccess"

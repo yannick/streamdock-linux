@@ -1,0 +1,19 @@
+# systemd user unit for streamdockd (H15-8). Install with `just install-service`, which copies the
+# release binary to ~/.local/bin and this file to ~/.config/systemd/user/.
+# Settings: ~/.config/streamdockd/config.toml (see packaging/config.example.toml).
+[Unit]
+Description=StreamDock daemon (web UI and API for the StreamDock N3)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/streamdockd
+Restart=on-failure
+RestartSec=2
+# SIGTERM makes streamdockd clear the dock and turn its screen off before exiting.
+KillSignal=SIGTERM
+TimeoutStopSec=5
+Environment=RUST_LOG=info
+
+[Install]
+WantedBy=default.target

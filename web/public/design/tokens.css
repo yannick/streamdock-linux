@@ -1,0 +1,182 @@
+/*
+ * streamdock design system: tokens (H15-11).
+ *
+ * Cyberpunk 2077 menu look, blue and green only (no red). Three layers:
+ *   1. primitives   --sd-<hue>-<step>       raw colors, never used directly by components
+ *   2. semantics    --sd-color-<role>       what components use; retheme here
+ *   3. scales       --sd-space-*, --sd-font-*, --sd-cut-*, --sd-glow-*, --sd-dur-* …
+ * The TS mirror is web/src/design/tokens.ts (`pnpm check:tokens` keeps them in sync).
+ * Docs: docs/design-system.md. Gallery: /design.
+ */
+
+@font-face {
+  font-family: "SD Condensed";
+  src: url("fonts/fira-sans-condensed-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SD Condensed";
+  src: url("fonts/fira-sans-condensed-medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SD Condensed";
+  src: url("fonts/fira-sans-condensed-semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* 1. Primitives */
+  --sd-cyan-50: #e8fdff;
+  --sd-cyan-100: #b9f6fb;
+  --sd-cyan-300: #6ff0f7;
+  --sd-cyan-400: #2ee6f2;
+  --sd-cyan-500: #10c4d6;
+  --sd-cyan-600: #0b93a3;
+  --sd-cyan-700: #0d6773;
+  --sd-cyan-800: #0c3f48;
+  --sd-cyan-900: #082a31;
+
+  --sd-green-300: #8dffbf;
+  --sd-green-400: #3bff95;
+  --sd-green-500: #1fd977;
+  --sd-green-600: #12a95b;
+  --sd-green-700: #0e6f3f;
+  --sd-green-800: #0b3d25;
+
+  --sd-blue-400: #4f8dff;
+  --sd-blue-600: #2756c4;
+  --sd-blue-800: #142a5c;
+
+  --sd-lime-400: #d4ff3a;
+  --sd-ice-100: #eafaff;
+
+  --sd-ink-950: #02070a;
+  --sd-ink-900: #050f14;
+  --sd-ink-850: #08161c;
+  --sd-ink-800: #0c1f27;
+  --sd-ink-700: #132d36;
+  --sd-ink-600: #1d404b;
+  --sd-ink-500: #2c5c69;
+  --sd-ink-400: #5f98a3;
+  --sd-ink-300: #7fb2ba;
+
+  /* 2. Semantics (cyan accent by default; [data-sd-accent="green"] swaps it) */
+  --sd-color-accent: var(--sd-cyan-400);
+  --sd-color-accent-strong: var(--sd-cyan-300);
+  --sd-color-accent-muted: var(--sd-cyan-700);
+  --sd-color-accent-faint: var(--sd-cyan-900);
+  --sd-color-on-accent: var(--sd-ink-950);
+  --sd-color-accent-2: var(--sd-green-400);
+
+  --sd-color-bg: var(--sd-ink-950);
+  --sd-color-surface: color-mix(in srgb, var(--sd-ink-850) 88%, transparent);
+  --sd-color-surface-raised: var(--sd-ink-800);
+  --sd-color-surface-sunken: var(--sd-ink-900);
+  --sd-color-hover: color-mix(in srgb, var(--sd-color-accent) 10%, transparent);
+
+  --sd-color-line: var(--sd-color-accent-muted);
+  --sd-color-line-strong: var(--sd-color-accent);
+  --sd-color-line-faint: var(--sd-ink-600);
+  --sd-color-grid: color-mix(in srgb, var(--sd-color-accent) 5%, transparent);
+
+  --sd-color-text: var(--sd-cyan-100);
+  --sd-color-text-strong: var(--sd-cyan-50);
+  --sd-color-text-muted: var(--sd-ink-300);
+  --sd-color-text-dim: var(--sd-ink-400);
+  --sd-color-label: var(--sd-color-accent);
+
+  --sd-color-success: var(--sd-green-400);
+  --sd-color-warning: var(--sd-lime-400);
+  --sd-color-critical: var(--sd-ice-100);
+  --sd-color-info: var(--sd-blue-400);
+  --sd-color-focus: var(--sd-green-300);
+
+  /* 3. Typography */
+  --sd-font-display: "SD Condensed", "Fira Sans Condensed", "Rajdhani", "Arial Narrow", sans-serif;
+  --sd-font-mono: "Fira Mono", "JetBrains Mono", ui-monospace, monospace;
+  --sd-font-size-xs: 0.6875rem;
+  --sd-font-size-sm: 0.8125rem;
+  --sd-font-size-md: 0.9375rem;
+  --sd-font-size-lg: 1.125rem;
+  --sd-font-size-xl: 1.5rem;
+  --sd-font-size-2xl: 2.25rem;
+  --sd-font-size-3xl: 3.25rem;
+  --sd-font-weight-regular: 400;
+  --sd-font-weight-medium: 500;
+  --sd-font-weight-bold: 600;
+  --sd-tracking-normal: 0.02em;
+  --sd-tracking-wide: 0.08em;
+  --sd-tracking-wider: 0.18em;
+  --sd-line-height: 1.4;
+
+  /* Spacing (4 px grid) */
+  --sd-space-1: 4px;
+  --sd-space-2: 8px;
+  --sd-space-3: 12px;
+  --sd-space-4: 16px;
+  --sd-space-5: 24px;
+  --sd-space-6: 32px;
+  --sd-space-7: 48px;
+  --sd-space-8: 64px;
+
+  /* Shape: no radii; corners are cut (chamfered) */
+  --sd-cut-sm: 6px;
+  --sd-cut-md: 12px;
+  --sd-cut-lg: 20px;
+  --sd-border: 1px;
+  --sd-border-strong: 2px;
+  --sd-touch: 44px;
+
+  /* Effects */
+  --sd-glow-sm: 0 0 4px color-mix(in srgb, var(--sd-color-accent) 55%, transparent);
+  --sd-glow-md: 0 0 6px color-mix(in srgb, var(--sd-color-accent) 60%, transparent),
+    0 0 18px color-mix(in srgb, var(--sd-color-accent) 25%, transparent);
+  --sd-glow-text: 0 0 6px color-mix(in srgb, currentColor 55%, transparent);
+  --sd-scanline-opacity: 0.18;
+
+  /* Motion */
+  --sd-dur-fast: 90ms;
+  --sd-dur-base: 160ms;
+  --sd-dur-slow: 320ms;
+  --sd-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --sd-ease-step: steps(3, end);
+
+  /* Layers */
+  --sd-z-header: 10;
+  --sd-z-overlay: 100;
+
+  /* Breakpoints (documentation only; media queries can't read custom properties):
+     sm 480px, md 768px, lg 1080px. Mirrored in tokens.ts. */
+  --sd-container: 1080px;
+}
+
+[data-sd-accent="green"] {
+  --sd-color-accent: var(--sd-green-400);
+  --sd-color-accent-strong: var(--sd-green-300);
+  --sd-color-accent-muted: var(--sd-green-700);
+  --sd-color-accent-faint: var(--sd-green-800);
+  --sd-color-accent-2: var(--sd-cyan-400);
+  --sd-color-text: #c9ffe0;
+}
+
+[data-sd-accent="blue"] {
+  --sd-color-accent: var(--sd-blue-400);
+  --sd-color-accent-strong: #8db5ff;
+  --sd-color-accent-muted: var(--sd-blue-600);
+  --sd-color-accent-faint: var(--sd-blue-800);
+  --sd-color-accent-2: var(--sd-cyan-400);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --sd-dur-fast: 0ms;
+    --sd-dur-base: 0ms;
+    --sd-dur-slow: 0ms;
+  }
+}

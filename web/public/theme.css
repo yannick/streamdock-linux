@@ -1,0 +1,179 @@
+/*
+ * streamdockd page theme: the design system (H15-11) plus the shell's own classes.
+ * Tokens and components live in design/; see docs/design-system.md.
+ */
+@import url("design/tokens.css");
+@import url("design/components.css");
+
+/* The shell renders plain <body>; give it the app base. */
+body {
+  margin: 0;
+}
+body:not(.sd-app) {
+  min-height: 100vh;
+  background:
+    linear-gradient(var(--sd-color-grid) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(90deg, var(--sd-color-grid) 1px, transparent 1px) 0 0 / 28px 28px,
+    radial-gradient(ellipse at 50% -20%, var(--sd-color-accent-faint), transparent 60%),
+    var(--sd-color-bg);
+  color: var(--sd-color-text);
+  font: var(--sd-font-size-md) / var(--sd-line-height) var(--sd-font-display);
+  letter-spacing: var(--sd-tracking-normal);
+}
+body:not(.sd-app)::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: var(--sd-z-overlay);
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 2px, rgb(0 0 0 / var(--sd-scanline-opacity)) 2px 3px);
+}
+
+/* Shell header (crates/streamdockd/src/web.rs) */
+header.hud {
+  position: sticky;
+  top: 0;
+  z-index: var(--sd-z-header);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sd-space-1) var(--sd-space-4);
+  padding: var(--sd-space-3) var(--sd-space-4);
+  border-bottom: var(--sd-border) solid var(--sd-color-line);
+  background: color-mix(in srgb, var(--sd-color-bg) 85%, transparent);
+  backdrop-filter: blur(6px);
+}
+header.hud h1 {
+  margin: 0;
+  font-size: var(--sd-font-size-xl);
+  font-weight: var(--sd-font-weight-bold);
+  letter-spacing: var(--sd-tracking-wider);
+  text-transform: uppercase;
+  color: var(--sd-color-accent);
+  text-shadow: var(--sd-glow-text);
+}
+header.hud .meta {
+  font-size: var(--sd-font-size-xs);
+  letter-spacing: var(--sd-tracking-wide);
+  text-transform: uppercase;
+  color: var(--sd-color-text-muted);
+}
+header.hud nav {
+  display: flex;
+  gap: var(--sd-space-4);
+}
+header.hud nav a {
+  color: var(--sd-color-text-muted);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: var(--sd-tracking-wide);
+}
+header.hud nav a[aria-current="page"],
+header.hud nav a:hover {
+  color: var(--sd-color-accent);
+}
+
+main {
+  width: 100%;
+  max-width: var(--sd-container);
+  margin: 0 auto;
+  padding: var(--sd-space-4);
+}
+@media (min-width: 768px) {
+  main {
+    padding: var(--sd-space-5) var(--sd-space-6);
+  }
+}
+
+/* Shell and dashboard markup that predates the components: .panel is the same chamfered frame as
+   .sd-panel (two clipped layers, so the cut corners keep their line). */
+.panel {
+  --sd-cut: var(--sd-cut-lg);
+  position: relative;
+  isolation: isolate;
+  padding: var(--sd-space-4);
+}
+.panel::before,
+.panel::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  clip-path: polygon(0 0, calc(100% - var(--sd-cut)) 0, 100% var(--sd-cut), 100% 100%, var(--sd-cut) 100%, 0 calc(100% - var(--sd-cut)));
+}
+.panel::before {
+  inset: 0;
+  background: var(--sd-color-line-strong);
+}
+.panel::after {
+  inset: var(--sd-border);
+  background: var(--sd-color-surface);
+}
+@media (min-width: 768px) {
+  .panel {
+    padding: var(--sd-space-5);
+  }
+}
+.panel h2 {
+  margin: 0 0 var(--sd-space-3);
+  font-size: var(--sd-font-size-sm);
+  letter-spacing: var(--sd-tracking-wider);
+  text-transform: uppercase;
+  color: var(--sd-color-accent);
+}
+.panel dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--sd-space-1) var(--sd-space-5);
+  margin: 0;
+}
+.panel dt {
+  align-self: center;
+  font-size: var(--sd-font-size-xs);
+  letter-spacing: var(--sd-tracking-wide);
+  text-transform: uppercase;
+  color: var(--sd-color-text-muted);
+}
+.panel dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.pending {
+  color: var(--sd-color-warning);
+}
+.glitch {
+  position: relative;
+}
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  opacity: 0.65;
+}
+.glitch::before {
+  color: var(--sd-color-accent-2);
+  clip-path: inset(0 0 58% 0);
+  translate: -1px 0;
+}
+.glitch::after {
+  color: var(--sd-color-info);
+  clip-path: inset(58% 0 0 0);
+  translate: 1px 0;
+}
+
+/* Build identity stays next to the daemon name and wraps on narrow screens (H15-77). */
+header.hud .brand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sd-space-2);
+}
+.build-version {
+  font-size: var(--sd-font-size-xs);
+  color: var(--sd-color-text-muted);
+}
+.build-version a { color: inherit; }
+.changelog li { margin-block: var(--sd-space-2); }
+header.hud nav { flex-wrap: wrap; }
+.changelog a, .changelog a:visited { color: var(--sd-color-accent); }

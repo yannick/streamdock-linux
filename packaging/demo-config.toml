@@ -1,0 +1,96 @@
+# Demo instance (`just demo`, H15-102): the simulated dock against the fake Home Assistant and
+# Lyrion of `examples/demo_backend.rs`, with neutral names. Used for the README screenshots and for
+# UI work without a real house. Loopback only; no real device is ever called.
+listen = "127.0.0.1:7399"
+hardware = false
+fake_device = true
+fake_input = false
+brightness = 80
+sleep_after_minutes = 0
+
+# Living room lights and blind, from the demo HA area.
+[modules.homeassistant]
+enabled = true
+url = "http://127.0.0.1:18123"
+area = "Living room"
+title = "Living room"
+knob1 = "color_temp"
+knob2 = "brightness"
+level_keys = [{ key = 5, show = "brightness", label = "Bright" }, { key = 6, show = "color_temp", label = "Colour" }]
+
+# The kids' room: pinned keys, blind up / stop / down.
+[[modules.homeassistant.tab]]
+id = "kids-lights"
+title = "Kids lights"
+keys = [{ key = 1, entity = "light.kids_ceiling", label = "Ceiling" }, { key = 4, entity = "cover.kids_blind", label = "Up", action = "open" }, { key = 5, entity = "cover.kids_blind", label = "Stop", action = "stop" }, { key = 6, entity = "cover.kids_blind", label = "Down", action = "close" }]
+knob1 = "color_temp"
+knob2 = "brightness"
+level_keys = [{ key = 2, show = "brightness", label = "Bright" }, { key = 3, show = "color_temp", label = "Colour" }]
+
+[modules.lyrion]
+enabled = true
+url = "http://127.0.0.1:19000"
+player = "00:04:20:aa:00:01"   # Living room
+title = "Playlists"
+
+[[modules.lyrion.tab]]
+id = "music"
+title = "Music"
+player = "00:04:20:aa:00:01"
+layout = "controls"
+volume_bar = { key = 3, show = "changes" }
+
+[[modules.lyrion.tab]]
+id = "kids-music"
+title = "Kids music"
+player = "00:04:20:aa:00:03"
+prefix = "_Kids_"
+now_playing = { keys = [] }
+then = "kids-songs"
+
+[[modules.lyrion.tab]]
+id = "kids-songs"
+title = "Now playing"
+player = "00:04:20:aa:00:03"
+layout = "controls"
+
+[modules.keys]
+enabled = true
+
+[[modules.keys.page]]
+title = "Scenes"
+id = "keys"
+
+[[modules.keys.page.key]]
+key = 1
+label = "Movie"
+image = "light-off"
+action = { type = "homeassistant", service = "light.turn_off", data = { entity_id = "light.living_ceiling" } }
+
+[[modules.keys.page.key]]
+key = 2
+label = "Reading"
+image = "light-on"
+action = { type = "homeassistant", service = "light.turn_on", data = { entity_id = "light.living_floor_lamp", brightness_pct = 80 } }
+
+[[modules.keys.page.key]]
+key = 3
+label = "Floor lamp"
+action = { type = "toggle", on_image = "light-on", on_label = "Lamp on", off_image = "light-off", off_label = "Lamp off", on = { type = "homeassistant", service = "light.turn_on", data = { entity_id = "light.living_floor_lamp" } }, off = { type = "homeassistant", service = "light.turn_off", data = { entity_id = "light.living_floor_lamp" } } }
+
+[modules.settings]
+title = "Settings"
+speaker_player = "00:04:20:aa:00:03"
+
+[player]
+enabled = true
+name = "Demo dock"
+server = "127.0.0.1"
+
+[[profiles]]
+name = "Home"
+modes = ["homeassistant", "music", "lyrion", "keys"]
+
+[[profiles]]
+name = "Kids"
+modes = ["kids-lights", "kids-music", "kids-songs", "settings"]

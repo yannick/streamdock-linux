@@ -1,0 +1,4 @@
+# H15-67: the ARM package targets the Luckfox RV1106 (Cortex-A7 + NEON).
+# Host builds keep their existing code generation settings.
+[target.armv7-unknown-linux-musleabihf]
+rustflags = ["-C", "target-cpu=cortex-a7"]

@@ -1,0 +1,288 @@
+[
+ {
+  "id": 115,
+  "type": "PipeWire:Interface:Device",
+  "info": {
+   "props": {
+    "api.bluez5.address": "02:00:00:00:00:B4",
+    "device.api": "bluez5",
+    "device.description": "WH-1000XM4",
+    "device.name": "bluez_card.02_00_00_00_00_B4",
+    "media.class": "Audio/Device"
+   },
+   "params": {
+    "EnumProfile": [
+     {
+      "index": 0,
+      "name": "off",
+      "description": "Off",
+      "available": "yes",
+      "priority": 0
+     },
+     {
+      "index": 2,
+      "name": "a2dp-sink",
+      "description": "High Fidelity Playback (A2DP Sink)",
+      "available": "yes",
+      "priority": 16,
+      "classes": [
+       [
+        "Audio/Sink",
+        1,
+        "card.profile.devices",
+        [
+         1
+        ]
+       ]
+      ]
+     },
+     {
+      "index": 3,
+      "name": "headset-head-unit",
+      "description": "Headset Head Unit (HSP/HFP)",
+      "available": "yes",
+      "priority": 1,
+      "classes": [
+       [
+        "Audio/Source",
+        1,
+        "card.profile.devices",
+        [
+         0
+        ]
+       ],
+       [
+        "Audio/Sink",
+        1,
+        "card.profile.devices",
+        [
+         1
+        ]
+       ]
+      ]
+     },
+     {
+      "index": 4,
+      "name": "a2dp-sink-sbc",
+      "description": "High Fidelity Playback (A2DP Sink, codec SBC)",
+      "available": "yes",
+      "priority": 18,
+      "classes": [
+       [
+        "Audio/Sink",
+        1,
+        "card.profile.devices",
+        [
+         1
+        ]
+       ]
+      ]
+     },
+     {
+      "index": 5,
+      "name": "a2dp-sink-sbc_xq",
+      "description": "High Fidelity Playback (A2DP Sink, codec SBC-XQ)",
+      "available": "yes",
+      "priority": 17,
+      "classes": [
+       [
+        "Audio/Sink",
+        1,
+        "card.profile.devices",
+        [
+         1
+        ]
+       ]
+      ]
+     },
+     {
+      "index": 10,
+      "name": "a2dp-sink-ldac",
+      "description": "High Fidelity Playback (A2DP Sink, codec LDAC)",
+      "available": "yes",
+      "priority": 19,
+      "classes": [
+       [
+        "Audio/Sink",
+        1,
+        "card.profile.devices",
+        [
+         1
+        ]
+       ]
+      ]
+     },
+     {
+      "index": 259,
+      "name": "headset-head-unit-cvsd",
+      "description": "Headset Head Unit (HSP/HFP, codec CVSD)",
+      "available": "yes",
+      "priority": 2,
+      "classes": [
+       [
+        "Audio/Source",
+        1,
+        "card.profile.devices",
+        [
+         0
+        ]
+       ],
+       [
+        "Audio/Sink",
+        1,
+        "card.profile.devices",
+        [
+         1
+        ]
+       ]
+      ]
+     },
+     {
+      "index": 260,
+      "name": "headset-head-unit-msbc",
+      "description": "Headset Head Unit (HSP/HFP, codec mSBC)",
+      "available": "yes",
+      "priority": 3,
+      "classes": [
+       [
+        "Audio/Source",
+        1,
+        "card.profile.devices",
+        [
+         0
+        ]
+       ],
+       [
+        "Audio/Sink",
+        1,
+        "card.profile.devices",
+        [
+         1
+        ]
+       ]
+      ]
+     }
+    ],
+    "Profile": [
+     {
+      "index": 10,
+      "name": "a2dp-sink-ldac",
+      "description": "High Fidelity Playback (A2DP Sink, codec LDAC)",
+      "available": "yes",
+      "priority": 19,
+      "classes": [
+       [
+        "Audio/Sink",
+        1,
+        "card.profile.devices",
+        [
+         1
+        ]
+       ]
+      ],
+      "save": false
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": 106,
+  "type": "PipeWire:Interface:Node",
+  "info": {
+   "props": {
+    "api.bluez5.address": "02:00:00:00:00:B4",
+    "api.bluez5.codec": "ldac",
+    "api.bluez5.profile": "a2dp-sink",
+    "device.id": 115,
+    "node.name": "bluez_output.02_00_00_00_00_B4.a2dp-sink",
+    "device.api": "bluez5",
+    "media.class": "Audio/Sink",
+    "object.serial": 164
+   },
+   "params": {
+    "Props": [
+     {
+      "volume": 1.0,
+      "mute": true,
+      "channelVolumes": [
+       0.287496,
+       0.287496
+      ],
+      "channelMap": [
+       "FL",
+       "FR"
+      ],
+      "softMute": true,
+      "softVolumes": [
+       1.0,
+       1.0
+      ],
+      "monitorMute": false,
+      "monitorVolumes": [
+       1.0,
+       1.0
+      ],
+      "params": [
+       "channelmix.disable",
+       false,
+       "channelmix.normalize",
+       true,
+       "channelmix.mix-lfe",
+       false,
+       "channelmix.upmix",
+       false,
+       "channelmix.lfe-cutoff",
+       0.0,
+       "channelmix.fc-cutoff",
+       0.0,
+       "channelmix.rear-delay",
+       12.0,
+       "channelmix.stereo-widen",
+       0.0,
+       "channelmix.hilbert-taps",
+       0
+      ]
+     },
+     {
+      "rate": 1.0,
+      "quality": 4,
+      "params": [
+       "resample.quality",
+       4,
+       "resample.disable",
+       false
+      ]
+     },
+     {
+      "minLatency": 512,
+      "maxLatency": 1024,
+      "latencyOffsetNsec": 0
+     },
+     {
+      "quality": -1
+     }
+    ],
+    "EnumFormat": [
+     {
+      "mediaType": "audio",
+      "mediaSubtype": "raw",
+      "format": {
+       "default": "F32LE",
+       "alt1": "F32LE",
+       "alt2": "S32LE",
+       "alt3": "S24LE",
+       "alt4": "S16LE"
+      },
+      "rate": 96000,
+      "channels": 2,
+      "position": [
+       "FL",
+       "FR"
+      ]
+     }
+    ]
+   }
+  }
+ }
+]

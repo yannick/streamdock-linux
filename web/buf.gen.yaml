@@ -1,0 +1,12 @@
+# TypeScript code for the streamdock.v1 API: `pnpm gen` (runs `buf generate` from proto/).
+# Output is committed in web/src/gen so the build doesn't need buf.
+version: v2
+inputs:
+  - directory: ../proto
+plugins:
+  - local: node_modules/.bin/protoc-gen-es
+    out: src/gen
+    opt:
+      - target=ts
+      - import_extension=js
+clean: true

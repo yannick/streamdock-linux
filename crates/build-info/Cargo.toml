@@ -1,0 +1,10 @@
+[package]
+name = "build-info"
+description = "Build identity for streamdockd, isolated from the web build"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true

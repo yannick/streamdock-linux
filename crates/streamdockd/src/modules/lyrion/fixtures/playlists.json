@@ -1,0 +1,34 @@
+{
+ "result": {
+  "count": 4,
+  "rescan": 1,
+  "playlists_loop": [
+   {
+    "id": 1190695,
+    "playlist": "_dock_evening_jazz"
+   },
+   {
+    "id": 823274,
+    "playlist": "?????"
+   },
+   {
+    "playlist": "123456788",
+    "id": 823275
+   },
+   {
+    "id": 985722,
+    "playlist": "5-freunde"
+   }
+  ]
+ },
+ "id": 1,
+ "params": [
+  "",
+  [
+   "playlists",
+   "0",
+   "200"
+  ]
+ ],
+ "method": "slim.request"
+}

@@ -1,0 +1,25 @@
+From: streamdockd authors
+Subject: [PATCH] phy: rockchip: inno-usb2: rv1106: raise the HS eye height to 3'b110 (H15-98)
+
+On the Luckfox Pico Ultra W, a high-speed device directly on USB-A (behind the USB switch U10) fails the reset at the vendor value 3'b011 ("usb1-port1: Cannot enable", -71) and then hangs until it is replugged, since USB-A's 5 V can't be switched. Measured: 3'b100 0/3 enumerations, 3'b101..3'b111 3/3; 3'b110 leaves one step of margin. A USB 2.0 hub in between keeps working.
+
+---
+diff --git a/sysdrv/source/kernel/drivers/phy/rockchip/phy-rockchip-inno-usb2.c b/sysdrv/source/kernel/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
+index 8cf8db10c..5c51246f9 100644
+--- a/sysdrv/source/kernel/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
++++ b/sysdrv/source/kernel/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
+@@ -2828,8 +2828,12 @@ static int rv1106_usb2phy_tuning(struct rockchip_usb2phy *rphy)
+ 	/* Set 45ohm HS ODT value to 5'b10111 to increase driver strength */
+ 	phy_update_bits(rphy->phy_base + 0x11c, GENMASK(4, 0), 0x17);
+ 
+-	/* Set Tx HS eye height tuning to 3'b011(462 mV)*/
+-	phy_update_bits(rphy->phy_base + 0x124, GENMASK(4, 2), (0x03 << 2));
++	/*
++	 * Set Tx HS eye height tuning to 3'b110 (vendor default 3'b011, 462 mV). H15-98: the
++	 * StreamDock directly on the Luckfox Pico Ultra W's USB-A (through its USB switch) fails
++	 * the high-speed reset at 3'b100 and below and hangs until replugged; 3'b101+ works.
++	 */
++	phy_update_bits(rphy->phy_base + 0x124, GENMASK(4, 2), (0x06 << 2));
+ 
+ 	/* Bypass Squelch detector calibration */
+ 	phy_update_bits(rphy->phy_base + 0x1a4, GENMASK(7, 4), (0x01 << 4));

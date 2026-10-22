@@ -1,0 +1,13 @@
+[package]
+name = "wakeword"
+description = "Wake word detection (H15-68): microWakeWord models in pure Rust (audio frontend, int8 streaming interpreter, detector)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+
+[lints]
+workspace = true

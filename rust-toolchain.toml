@@ -1,0 +1,5 @@
+# Pin the compiler so every checkout and CI build with the same toolchain.
+# proa needs Rust >= 1.93.
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy"]

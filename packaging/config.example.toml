@@ -1,0 +1,161 @@
+# streamdockd settings: copy to ~/.config/streamdockd/config.toml (or point STREAMDOCKD_CONFIG at it).
+# Every key is optional. Unknown keys are an error, so typos don't go unnoticed.
+
+# Web UI and API address. Use 0.0.0.0 to reach the UI from other machines on the network.
+listen = "0.0.0.0:7315"
+
+# LCD brightness set when the dock is opened, 0..=100. The N3's backlight has a tiny range (H15-31):
+# every value is visible but barely differs, and 0 is not dark. Use sleep_after_minutes for dark.
+brightness = 80
+
+# Look for real docks (default true) and/or run the simulated dock FAKE-0001 (default false).
+# Env overrides: STREAMDOCKD_HARDWARE=0/1, STREAMDOCKD_FAKE_DEVICE=0/1, STREAMDOCKD_ADDR.
+# Only one daemon drives a dock (lock in $XDG_RUNTIME_DIR/streamdockd/<serial>.lock); others leave it alone.
+hardware = true
+fake_device = false
+# The simulated dock can press its keys by itself (UI demos); it only does so while a demo mode is
+# active, never into Home Assistant, Lyrion or custom keys (H15-33). Env: STREAMDOCKD_FAKE_INPUT=0/1.
+fake_input = false
+
+# How often to look for plugged-in docks, in milliseconds (at least 100).
+poll_interval_ms = 1000
+
+# Screen off after this many minutes without input; the first press then only wakes the dock
+# (it is not passed to the active mode). 0 or absent = never sleep.
+sleep_after_minutes = 10
+
+# Optional night window (local time): this brightness inside it (0 = backlight off), the normal
+# one outside. Brightness changed from the dock or the UI is saved in
+# ~/.local/state/streamdockd/state.toml and survives restarts; `brightness` above is the default.
+# [night]
+# from = "23:00"
+# to = "07:00"
+# brightness = 10
+
+# Modules: each one is a mode on the dock; knob 3 switches between them (H15-16).
+
+# Lights mode (H15-18): the lights of one Home Assistant area on the LCD keys (press = toggle).
+# Knob 1 = brightness, knob 2 = color temperature (of the lights that are on), knob 2 press =
+# all on/off. The long-lived access token is read from token_file only (mode 600, never in git);
+# without it the keys say "No HA token" and the file is checked again every 10 s.
+[modules.homeassistant]
+enabled = true
+url = "http://homeassistant.local:8123"
+area = "OG Buero Nord"                                      # area name or id, matched loosely
+# token_file = "~/.config/streamdockd/homeassistant.token" # default
+
+# Music mode (H15-17): the Lyrion Music Server's playlists whose name starts with `prefix` on the
+# LCD keys (prefix hidden, `_` shown as space). Press = play on `player`; knob 2 (big) = volume,
+# knob 1 turn = page (more than 6), both presses = play/pause; buttons 7/8/9 = previous /
+# play-pause / next track (H15-95).
+[modules.lyrion]
+enabled = true
+url = "http://192.168.1.13:9000"   # LMS web address (JSON-RPC at <url>/jsonrpc.js)
+player = "cc:cc:00:00:00:ae"        # the player's MAC (or its name); pick it in Settings or the tab menu (H15-87).
+                                     # Tabs without a player use this one, else the first player Lyrion lists
+# prefix = "_dock"
+# layout = "controls"  # (H15-90) "playlists" (default): playlists on the keys the now-playing band leaves free;
+#                     # "controls": the band, then ⏮ ⏯ ⏭ on the next three keys, knob 1 press = play/pause
+# then = "music"      # after a playlist key started a playlist, switch to this tab (e.g. a "controls" tab)
+# tone = { songpal = "http://192.168.1.195:54480/sony" }  # "controls": knob 2 = the bass (100 Hz band, -10..+10)
+#                     # of a Sony speaker via its Songpal API (H15-90); the first turn selects its CUSTOM preset
+# volume_bar = { key = 3, show = "changes" }  # (H15-95) the volume as a bar + % on a key: for 3 s after each
+#                     # change ("changes"), or "always" (the now-playing band then leaves that key)
+# follow_headset = true  # while headset mode has the music on the built-in player, control that one (H15-95)
+# Knobs on music tabs (H15-95): knob 2 (the big one) = volume; knob 1 = bass ("controls") or page ("playlists");
+# both presses = play/pause.
+# volume = "output"   # knob 1 turns this machine's audio output ([audio], H15-50; for Bluetooth the
+#                     # headset's own volume) instead of the player's volume in Lyrion ("lyrion", default).
+#                     # Only while the tab's player is this machine's built-in player ([player]); any other
+#                     # player gets Lyrion's volume (H15-87)
+
+# Custom keys (H15-23; edit them on the /keys page, H15-29): each [[modules.keys.page]] is a mode of keys (1-6 LCD, 7-9 buttons) and
+# knobs (1-2) with configured actions. A key shows "ok" or "failed" for a moment after its action.
+# Action types:
+#   { type = "http", url = "...", method = "POST", body = "...", headers = { ... }, timeout_ms = 10000 }
+#   { type = "command", argv = ["notify-send", "hi"] }        # no shell; needs allow_commands = true
+#   { type = "mode", id = "lyrion" }                          # switch to another mode
+#   { type = "profile", name = "Evening" }                    # switch to another profile
+#   { type = "brightness", set = 80 } / { type = "brightness", step = 5 }  # step: per knob detent
+#   { type = "homeassistant", service = "light.toggle", data = { entity_id = "light.x" } }
+#                                                             # url and token of [modules.homeassistant]
+#   { type = "lyrion", command = ["mixer", "volume", "{delta}"] }   # on the [modules.lyrion] player
+#   { type = "multi", steps = [ <action>, { type = "delay", ms = 500 }, <action> ] }
+#   { type = "toggle", on = <action>, off = <action>, on_label = "On", off_label = "Off" }
+#     A toggle follows a Home Assistant entity's state (polled every 5 s while the page shows) when
+#     both sides call the same entity_id, or with state = "light.x"; otherwise it just alternates.
+# In knob turns, "{delta}" in any string becomes the signed number of detents ("+2", "-1").
+# [modules.keys]
+# allow_commands = false
+#
+# [[modules.keys.page]]
+# title = "Office"                  # mode name; id = "keys" (then "keys-2", …) unless set
+#
+# Built-in icons (H15-48): image = "light-on", "blinds-up", "volume-down", "play-pause", … (the full
+# list is on /settings → Key images), tinted by the key's state.
+# Key images (H15-28): upload pictures on /settings → Key images, then use them by name:
+# image = "lamp" on a key, on_image / off_image on a toggle. The frame shows the state (green = on).
+#
+# [[modules.keys.page.key]]
+# key = 1
+# label = "Webhook"
+# image = "hook"
+# action = { type = "http", url = "https://example.org/hook", body = '{"from":"dock"}' }
+#
+# [[modules.keys.page.key]]
+# key = 7
+# action = { type = "homeassistant", service = "light.toggle", data = { entity_id = "light.e07_deckenspots" } }
+#
+# [[modules.keys.page.knob]]
+# knob = 1
+# label = "Brightness"
+# turn = { type = "brightness", step = 5 }
+# press = { type = "brightness", set = 80 }
+
+# Profiles (H15-25): named sets of modes. Knob 3 then turns only through the active profile's modes
+# (mode ids as in the dashboard: homeassistant, lyrion, keys, keys-2, demo-1 …; ids of modes that
+# aren't enabled are skipped). Switch with a key action ({ type = "profile", name = "…" }) or the
+# dashboard; the active profile survives restarts. "folder/name" groups profiles in the UI.
+# Without [[profiles]], knob 3 turns through every enabled mode.
+# [[profiles]]
+# name = "Office"
+# modes = ["homeassistant", "keys", "lyrion"]
+#
+# [[profiles]]
+# name = "Evening"
+# modes = ["lyrion", "homeassistant"]
+
+# Wi-Fi and Bluetooth of this machine on the settings page (H15-38), through NetworkManager and
+# BlueZ. Off by default: on a laptop it would let anyone on the LAN change the laptop's Wi-Fi. The
+# Luckfox install turns it on (it needs a polkit rule and the netdev/bluetooth groups, see
+# packaging/luckfox/).
+# [network]
+# manage = true
+# wifi = "fallback"   # when the Wi-Fi radio is on (H15-44): "fallback" = only while Ethernet is down
+#                     # (default), "both" = always, "off" = never (Bluetooth gets the chip alone)
+
+# Audio of this machine on the settings page and the dock (H15-50), through PipeWire: outputs,
+# volume and mute, which output plays, tone (bass/mid/treble) and balance; keys action
+# { type = "audio", step = 2 } (volume per knob detent) or { type = "audio", mute = "toggle" }.
+# Off by default. The Luckfox install turns it on: PipeWire runs as the user "sound", streamdockd
+# is in its group, and the tone filter "Streamdock EQ" runs there (packaging/luckfox/audio/).
+# [audio]
+# manage = true
+# user = "sound"      # the user PipeWire runs as
+
+# The built-in Lyrion player (H15-55): this machine shows up in Lyrion as a player of its own.
+# Off by default. The player id is derived from /etc/machine-id and the config file's path; a rename
+# in Lyrion is kept (state.toml) until the name here changes. Applied without a restart.
+# Its volume in Lyrion is the output's volume (0-100 % in Lyrion = 0-150 % on the output); a change of
+# the output elsewhere (settings page, a knob) is sent back to Lyrion. Fixed volume in Lyrion leaves it.
+# [player]
+# enabled = true
+# name = "StreamDock"
+# server = "192.168.1.2"   # optional, port 3483 by default; found by discovery when unset
+# max_sample_rate = 96000  # 44100, 48000, 96000 or 192000; Lyrion resamples above
+# formats = ["flac", "mp3", "pcm"]  # offered to Lyrion in this order; ["pcm"] = Lyrion decodes everything
+# output_buffer_ms = 4000  # decoded audio buffered before the output, 1000-20000
+# replay_gain = "smart"    # off, track, album or smart (Lyrion's player setting); unset = leave Lyrion's
+# output = "dsp"           # "dsp" (through the sound settings), "default" or an output's name (no DSP)
+# transition = "crossfade" # none, crossfade, fade-in, fade-out or fade-in-out; unset = leave Lyrion's
+# transition_seconds = 5   # 1-10; a crossfade raises the output buffer to this + 1 s

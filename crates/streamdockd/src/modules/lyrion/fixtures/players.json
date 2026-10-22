@@ -1,0 +1,68 @@
+{
+ "method": "slim.request",
+ "params": [
+  "",
+  [
+   "players",
+   "0",
+   "50"
+  ]
+ ],
+ "result": {
+  "players_loop": [
+   {
+    "ip": "192.168.1.13:60092",
+    "name": "Buero Essence",
+    "playerid": "cc:cc:00:00:00:ae",
+    "modelname": "CastBridge",
+    "canpoweroff": 1,
+    "model": "squeezelite",
+    "displaytype": "none",
+    "connected": 1,
+    "isplayer": 1,
+    "playerindex": 3,
+    "uuid": null,
+    "power": 1,
+    "seq_no": 0,
+    "isplaying": 1,
+    "firmware": 0
+   },
+   {
+    "isplayer": 1,
+    "playerindex": 6,
+    "power": 1,
+    "uuid": null,
+    "seq_no": 0,
+    "isplaying": 1,
+    "firmware": 0,
+    "ip": "192.168.1.13:33004",
+    "name": "airplay Bedroom",
+    "playerid": "aa:aa:00:00:00:06",
+    "modelname": "RaopBridge",
+    "model": "squeezelite",
+    "canpoweroff": 1,
+    "connected": 1,
+    "displaytype": "none"
+   },
+   {
+    "model": "boom",
+    "canpoweroff": 1,
+    "connected": 1,
+    "displaytype": "graphic-160x32",
+    "modelname": "Squeezebox Boom",
+    "playerid": "00:04:20:00:00:fe",
+    "name": "Garage",
+    "ip": "192.168.1.104:17459",
+    "firmware": 57,
+    "isplaying": 0,
+    "seq_no": 0,
+    "power": 1,
+    "uuid": "c4b3cae43df6e22886572a0de2e48686",
+    "isplayer": 1,
+    "playerindex": 12
+   }
+  ],
+  "count": 3
+ },
+ "id": 1
+}

@@ -1,0 +1,1764 @@
+syntax = "proto3";
+
+package streamdock.v1;
+
+// Live view and control of the attached StreamDock N3 docks (USB 6603:1003).
+//
+// Controls, numbered as on the device (see docs/streamdock-n3-protocol.md):
+//   keys 1-6   LCD keys, 3x2, row-major from the top left (they show images)
+//   keys 7-9   plain buttons below the LCD keys, left to right (no image)
+//   knobs 1-3  1 = bottom left, 2 = top, 3 = bottom right; they turn and press
+//
+// All UI traffic is binary protobuf over the Connect protocol.
+service DeviceService {
+  // Devices currently attached.
+  rpc GetDevices(GetDevicesRequest) returns (GetDevicesResponse);
+
+  // Every device event, pushed to all connected clients as it happens.
+  //
+  // The stream starts with one `attached` event per device that is already attached, so a client
+  // needs no separate GetDevices call. A client that falls too far behind skips the events it
+  // missed (it is told how many in `WatchEventsResponse.skipped`); it never slows down other
+  // clients or the device.
+  rpc WatchEvents(WatchEventsRequest) returns (stream WatchEventsResponse);
+
+  // Sets the LCD brightness of a device.
+  rpc SetBrightness(SetBrightnessRequest) returns (SetBrightnessResponse);
+
+  // Shows an image on an LCD key (1-6). The daemon scales, rotates and encodes it for the device.
+  rpc SetKeyImage(SetKeyImageRequest) returns (SetKeyImageResponse);
+
+  // Clears an LCD key (1-6).
+  rpc ClearKeyImage(ClearKeyImageRequest) returns (ClearKeyImageResponse);
+
+  // Switches the dock to another mode (a module, see Screen.modes).
+  rpc SetMode(SetModeRequest) returns (SetModeResponse);
+
+  // Switches to another profile (see Screen.profiles); the choice survives restarts.
+  rpc SetProfile(SetProfileRequest) returns (SetProfileResponse);
+
+  // Presses a key or turns or presses a knob as if on the dock (H15-51): the input takes the same
+  // path as the dock's own (modes, key actions, integrations) and is echoed in WatchEvents.
+  rpc SendInput(SendInputRequest) returns (SendInputResponse);
+
+  // Voice (H15-68/69): push-to-talk and wake word settings, `[modules.homeassistant.assist]`.
+  rpc GetVoice(GetVoiceRequest) returns (GetVoiceResponse);
+  // Checks and writes the settings; they apply without a restart.
+  rpc SaveVoice(SaveVoiceRequest) returns (SaveVoiceResponse);
+  // Home Assistant's assist pipelines (for the pipeline choice).
+  rpc ListAssistPipelines(ListAssistPipelinesRequest) returns (ListAssistPipelinesResponse);
+  // Adds a microWakeWord model trained elsewhere (`.tflite` + its `.json` manifest), after checking
+  // it; replaces an upload with the same id.
+  rpc UploadWakeWord(UploadWakeWordRequest) returns (UploadWakeWordResponse);
+  // Removes an uploaded model (not the one in use, not a built-in one).
+  rpc DeleteWakeWord(DeleteWakeWordRequest) returns (DeleteWakeWordResponse);
+
+  // Tabs (H15-32): every change edits config.toml and is applied by hot reload.
+  // Adds a lights, music or keys tab; returns its mode id.
+  rpc AddTab(AddTabRequest) returns (AddTabResponse);
+  rpc RenameTab(RenameTabRequest) returns (RenameTabResponse);
+  // A music tab's Lyrion player as configured (name or MAC; empty = the default), and changing it
+  // (H15-87). Pick the value from GetSettingChoices("lyrion", "player"): the player's MAC.
+  rpc GetMusicTab(GetMusicTabRequest) returns (GetMusicTabResponse);
+  rpc SetMusicTabPlayer(SetMusicTabPlayerRequest) returns (SetMusicTabPlayerResponse);
+  rpc DeleteTab(DeleteTabRequest) returns (DeleteTabResponse);
+  // Sets the order of the tabs (of the given profile, if any).
+  rpc MoveTabs(MoveTabsRequest) returns (MoveTabsResponse);
+  // Replaces a lights or music tab by a custom keys tab doing the same, to edit key by key.
+  rpc ConvertTab(ConvertTabRequest) returns (ConvertTabResponse);
+  // What a lights tab's keys and knobs show and do.
+  rpc GetLightsTab(GetLightsTabRequest) returns (GetLightsTabResponse);
+  // Pins an entity to a key of a lights tab (or removes it); the tab then shows pinned entities only.
+  rpc SetLightsKey(SetLightsKeyRequest) returns (SetLightsKeyResponse);
+  rpc SetLightsKnob(SetLightsKnobRequest) returns (SetLightsKnobResponse);
+  // The now-playing band of a music tab (H15-88): which keys, what text, how it scrolls.
+  rpc GetNowPlaying(GetNowPlayingRequest) returns (GetNowPlayingResponse);
+  rpc SetNowPlaying(SetNowPlayingRequest) returns (SetNowPlayingResponse);
+  // Home Assistant entities that can go on a key (lights, switches, scenes, scripts …).
+  rpc ListHomeAssistantEntities(ListHomeAssistantEntitiesRequest) returns (ListHomeAssistantEntitiesResponse);
+
+  // The settings of the daemon and of every module, with descriptions for the settings screen.
+  // Secrets are never returned, only whether they are set.
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+
+  // Changes one module's settings (validated, written to the config file). Applied without a daemon
+  // restart where possible; the response says if a restart is still needed.
+  rpc UpdateModuleSettings(UpdateModuleSettingsRequest) returns (UpdateModuleSettingsResponse);
+
+  // Sets a secret (e.g. the Home Assistant token). Write-only.
+  rpc SetSecret(SetSecretRequest) returns (SetSecretResponse);
+
+  // Suggestions for a setting, read from the live system (e.g. Home Assistant areas, Lyrion
+  // players), using the values currently in the form.
+  rpc GetSettingChoices(GetSettingChoicesRequest) returns (GetSettingChoicesResponse);
+
+  // The whole configuration as one backup file (H15-26). Secrets (tokens) are never included.
+  rpc ExportBackup(ExportBackupRequest) returns (ExportBackupResponse);
+
+  // Replaces the configuration with a backup, keeping this machine's own values (listen address,
+  // real/simulated docks, poll interval). The previous file is kept as `<config>.bak`.
+  rpc ImportBackup(ImportBackupRequest) returns (ImportBackupResponse);
+
+  // The uploaded key images (H15-28), with small previews.
+  rpc ListKeyAssets(ListKeyAssetsRequest) returns (ListKeyAssetsResponse);
+
+  // Uploads a key image (PNG or JPEG, at most 4 MB), replacing one of the same name. Keys refer to
+  // it by name (`image = "lamp"` in `[[modules.keys.page.key]]`).
+  rpc SetKeyAsset(SetKeyAssetRequest) returns (SetKeyAssetResponse);
+
+  // Deletes a key image. Keys that use it show their text only.
+  rpc DeleteKeyAsset(DeleteKeyAssetRequest) returns (DeleteKeyAssetResponse);
+
+  // The custom key pages (`[modules.keys]`, H15-29) for the keys editor, with what its pickers offer.
+  rpc GetKeyPages(GetKeyPagesRequest) returns (GetKeyPagesResponse);
+
+  // Validates the pages exactly like the daemon does at startup, writes `[modules.keys]` (the rest of
+  // the config file and its comments are kept) and applies it without a restart.
+  rpc SaveKeyPages(SaveKeyPagesRequest) returns (SaveKeyPagesResponse);
+
+  // This machine's Wi-Fi and Bluetooth (H15-38), via NetworkManager and BlueZ. Only with
+  // `[network] manage = true`; otherwise `GetNetwork` says `managed = false` and the rest fail.
+  rpc GetNetwork(GetNetworkRequest) returns (GetNetworkResponse);
+
+  // Lists the Wi-Fi networks in range, after a fresh scan when `rescan` is set (a few seconds).
+  rpc ListWifiNetworks(ListWifiNetworksRequest) returns (ListWifiNetworksResponse);
+
+  // Connects to a Wi-Fi network: with its saved connection, else with `password` (write-only,
+  // stored by NetworkManager). Empty password for open networks.
+  rpc ConnectWifi(ConnectWifiRequest) returns (ConnectWifiResponse);
+
+  rpc DisconnectWifi(DisconnectWifiRequest) returns (DisconnectWifiResponse);
+
+  // Deletes the saved connection (and its password) for an SSID.
+  rpc ForgetWifi(ForgetWifiRequest) returns (ForgetWifiResponse);
+
+  // Lists Bluetooth devices, after a scan of about 8 s when `scan` is set (powers the adapter on).
+  rpc ListBluetoothDevices(ListBluetoothDevicesRequest) returns (ListBluetoothDevicesResponse);
+
+  // Pairs (if needed), trusts and connects a device, e.g. a speaker.
+  rpc ConnectBluetooth(ConnectBluetoothRequest) returns (ConnectBluetoothResponse);
+
+  rpc DisconnectBluetooth(DisconnectBluetoothRequest) returns (DisconnectBluetoothResponse);
+
+  // Unpairs and forgets a device.
+  rpc RemoveBluetooth(RemoveBluetoothRequest) returns (RemoveBluetoothResponse);
+
+  // Switches the Bluetooth adapter on or off.
+  rpc SetBluetoothPower(SetBluetoothPowerRequest) returns (SetBluetoothPowerResponse);
+  // Everything BlueZ says about one device (H15-49): profiles, transports and codecs, battery …
+  rpc GetBluetoothDevice(GetBluetoothDeviceRequest) returns (GetBluetoothDeviceResponse);
+  // Chooses a device's audio codec (and LDAC's quality), remembered and reapplied on every connect;
+  // an empty codec goes back to PipeWire's automatic choice (H15-78).
+  rpc SetBluetoothCodec(SetBluetoothCodecRequest) returns (SetBluetoothCodecResponse);
+  // Whether a device's link is kept at 48 kHz (the default) or at the rate the headset chooses;
+  // remembered per device, renegotiates a connected link at once (H15-78).
+  rpc SetBluetoothLinkRate(SetBluetoothLinkRateRequest) returns (SetBluetoothLinkRateResponse);
+
+  // Changes the Ethernet IPv4 setup (H15-42). The change is only tried: it is reverted after
+  // `revert_in_seconds` unless ConfirmEthernet is called (from the new address), so a wrong
+  // static address can't lock the board out.
+  rpc SetEthernet(SetEthernetRequest) returns (SetEthernetResponse);
+
+  // Keeps the Ethernet change on trial (writes it to NetworkManager's saved profile).
+  rpc ConfirmEthernet(ConfirmEthernetRequest) returns (ConfirmEthernetResponse);
+
+  // When the Wi-Fi radio is on (H15-44): "off" (Bluetooth has the chip alone), "fallback" (only
+  // while Ethernet is down) or "both". Written to `[network] wifi` and applied at once.
+  rpc SetWifiMode(SetWifiModeRequest) returns (SetWifiModeResponse);
+
+  // This machine's audio (PipeWire, H15-50), where the daemon manages it (`[audio] manage = true`):
+  // outputs, volume, tone. Changes also arrive live as `WatchEventsResponse.audio`.
+  rpc GetAudio(GetAudioRequest) returns (GetAudioResponse);
+  // Makes an output the one everything plays on; it goes first in the output priority (H15-79).
+  rpc SetAudioOutput(SetAudioOutputRequest) returns (SetAudioOutputResponse);
+  // The output priority (H15-79): the highest present output plays, a lower one stands in.
+  rpc GetOutputPriority(GetOutputPriorityRequest) returns (GetOutputPriorityResponse);
+  rpc SetOutputPriority(SetOutputPriorityRequest) returns (SetOutputPriorityResponse);
+
+  // Identity of this running daemon build (H15-77), also for external clients.
+  rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
+  // Volume and mute of an output.
+  rpc SetAudioVolume(SetAudioVolumeRequest) returns (SetAudioVolumeResponse);
+  // Every sound setting (tone, balance, character, loudness, correction, crossfeed, limiter),
+  // applied to every output; kept across restarts.
+  rpc SetAudioTone(SetAudioToneRequest) returns (SetAudioToneResponse);
+
+  // The built-in Lyrion player (H15-52): its `[player]` settings and live state (the state also
+  // arrives as `WatchEventsResponse.player`).
+  rpc GetPlayer(GetPlayerRequest) returns (GetPlayerResponse);
+  // Saves `[player]` and applies it without a restart: a new name renames the player in Lyrion,
+  // other changes reconnect it.
+  rpc SetPlayer(SetPlayerRequest) returns (SetPlayerResponse);
+  // The Lyrion servers that answer discovery on the LAN (takes about 2 s).
+  rpc FindLyrionServers(FindLyrionServersRequest) returns (FindLyrionServersResponse);
+  // Drops the connection and connects again (to the configured server, or discovery: "switch server").
+  rpc ReconnectPlayer(ReconnectPlayerRequest) returns (ReconnectPlayerResponse);
+  // A new player id: Lyrion sees a new player (the old one stays there, disconnected, until removed).
+  rpc ResetPlayerId(ResetPlayerIdRequest) returns (ResetPlayerIdResponse);
+}
+
+message Device {
+  // Stable id of the dock: its USB serial number.
+  string id = 1;
+  // Model name, e.g. "StreamDock N3".
+  string model = 2;
+  // Firmware version string reported by the dock, e.g. "V25.293N3_E.01.004".
+  string firmware_version = 3;
+  uint32 vendor_id = 4;
+  uint32 product_id = 5;
+  // Current LCD brightness, 0-100.
+  uint32 brightness = 6;
+}
+
+message GetDevicesRequest {}
+
+message GetDevicesResponse {
+  repeated Device devices = 1;
+}
+
+message WatchEventsRequest {}
+
+message WatchEventsResponse {
+  // Set for device events; unset when this response carries `screen`.
+  DeviceEvent event = 1;
+  // Number of events this client missed right before this one because it fell behind.
+  uint64 skipped = 2;
+  // What the dock shows: sent at the start of the stream (after the attach snapshot) and whenever
+  // the mode or a key face changes. The latest one replaces all earlier ones.
+  Screen screen = 3;
+  // Something the daemon or a module did. The stream starts with the recent history (oldest first).
+  Activity activity = 4;
+  // This machine's audio (H15-50): sent at the start of the stream and on every change, where the
+  // daemon manages the audio. The latest one replaces all earlier ones.
+  AudioState audio = 5;
+  // This machine's network and Bluetooth (H15-49): sent at the start of the stream when the daemon
+  // manages the network, and whenever something changes. The latest one replaces earlier ones.
+  NetworkState network = 6;
+  // Revisions of the config and the uploaded images (H15-49): sent at the start of the stream and
+  // whenever either changes, from any browser, the dock or an edit on disk. Screens that show the
+  // config (settings, keys editor, images) read it again when a revision changes.
+  ConfigState config = 7;
+  // The built-in Lyrion player (H15-55): sent at the start of the stream once the player was enabled,
+  // and on every change. The latest one replaces all earlier ones.
+  PlayerState player = 8;
+  // The wake word (H15-68): sent at the start of the stream once it was enabled, a few times a second
+  // while it listens (level, probability), and on every change. The latest replaces earlier ones.
+  WakeWordState wake = 9;
+}
+
+// The wake word listener (H15-68).
+message WakeWordState {
+  // Listening for a wake word (configured and running).
+  bool enabled = 1;
+  // Model id and what to say, e.g. "okay_nabu" / "Okay Nabu".
+  string model = 2;
+  string wake_word = 3;
+  // "listening", "request" (heard: the request runs), "starting" or "off".
+  string phase = 4;
+  // Why it isn't listening (no microphone, model error, …); empty when fine.
+  string problem = 5;
+  // Microphone level over the last 200 ms, dBFS (-100 … 0).
+  float level_db = 6;
+  // The model's latest probability and its sliding-window mean, 0-1.
+  float probability = 7;
+  float mean = 8;
+  // The detection threshold in use.
+  float threshold = 9;
+  // How often it was heard since the listener started, and when last (Unix ms; 0 = never).
+  uint32 heard_count = 10;
+  uint64 heard_at_unix_ms = 11;
+  // How the last request ended ("done", "nothing heard", "failed: …"); empty before the first.
+  string last_result = 12;
+}
+
+// The built-in Lyrion player (H15-55, settings in H15-52).
+message PlayerState {
+  // The name in Lyrion (renamed there or in the config).
+  string name = 1;
+  // The player id in Lyrion, a MAC address such as "02:1a:…".
+  string player_id = 2;
+  // Connected to a Lyrion server.
+  bool connected = 3;
+  // The server's address (host:port), when known.
+  string server = 4;
+  // A track is playing (started and not finished); `paused` while it is paused.
+  bool playing = 5;
+  bool paused = 6;
+  // The last problem, e.g. "no Lyrion server found"; empty when fine.
+  string problem = 7;
+  // `[player] enabled`: false once it was turned off (the other fields are then empty).
+  bool enabled = 8;
+  // The playing track's format as the player decodes it, e.g. "FLAC" or "PCM 44.1 kHz 16 bit".
+  string format = 9;
+  // Output and decoder buffer fill in percent (steps of 10), and output underruns since the start.
+  uint32 output_fill = 10;
+  uint32 decode_fill = 11;
+  uint32 underruns = 12;
+  // The current track as Lyrion describes it (empty when nothing plays).
+  string title = 13;
+  string artist = 14;
+  string album = 15;
+  // Lyrion's bitrate text, e.g. "320kbps CBR" or "1411kbps".
+  string bitrate = 16;
+  // Sample rates (H15-73): the stream as the player decodes it, the file as Lyrion has it (they
+  // differ when Lyrion resampled on the server), and the output's (PipeWire's) rate; 0 if unknown.
+  uint32 sample_rate = 17;
+  uint32 source_sample_rate = 18;
+  uint32 output_sample_rate = 19;
+}
+
+message ConfigState {
+  // Changes whenever config.toml changes.
+  uint64 revision = 1;
+  // Changes whenever an image is uploaded, replaced or deleted.
+  uint64 assets_revision = 2;
+}
+
+// What the network and Bluetooth settings show, pushed live (H15-49).
+message NetworkState {
+  GetNetworkResponse status = 1;
+  // As ListBluetoothDevices returns them.
+  repeated BluetoothDevice bluetooth_devices = 2;
+  bool bluetooth_scanning = 3;
+}
+
+// An entry of the activity feed: an action a module ran and its result, a status change, a mode
+// switch …
+message Activity {
+  // Increases with every entry; use it as a key.
+  uint64 id = 1;
+  uint64 timestamp_unix_ms = 2;
+  // "daemon" or a module id, e.g. "homeassistant", "lyrion".
+  string source = 3;
+  ActivityLevel level = 4;
+  // What happened, e.g. "toggle Deckenspots", "load playlist evening jazz on Buero Essence".
+  string text = 5;
+}
+
+enum ActivityLevel {
+  ACTIVITY_LEVEL_UNSPECIFIED = 0;
+  // Something happened or started (a status change, an action sent).
+  ACTIVITY_LEVEL_INFO = 1;
+  // An action succeeded.
+  ACTIVITY_LEVEL_OK = 2;
+  // An action failed or a connection broke; `text` says why.
+  ACTIVITY_LEVEL_ERROR = 3;
+}
+
+// What the dock shows, decided by the active module (mode). Applies to every attached dock.
+message Screen {
+  // The modes of the active profile (all enabled modules without profiles), in switching order
+  // (knob 3 turns through them).
+  repeated Mode modes = 1;
+  // `Mode.id` of the active mode; empty when no module is enabled.
+  string active_mode = 2;
+  // One entry per LCD key (1-6) the active mode uses; keys without a face are blank.
+  repeated KeyFace faces = 3;
+  // What each knob does in the active mode.
+  repeated KnobRole knobs = 4;
+  // Configured profiles (H15-25), by name; "folder/name" groups them. Empty without profiles.
+  repeated string profiles = 5;
+  // Name of the active profile; empty without profiles.
+  string active_profile = 6;
+  // What the active music tab's player plays (H15-88); unset on other tabs.
+  NowPlaying now_playing = 7;
+}
+
+// The current track of a music tab's player (H15-88), for the now-playing component.
+message NowPlaying {
+  string title = 1;
+  string artist = 2;
+  string album = 3;
+  // The configured fields joined in their order, as the dock shows them (e.g. "Title · Artist").
+  string text = 4;
+  // Cover image URL (on the Lyrion server); empty without one.
+  string cover_url = 5;
+  // Track length; 0 when unknown (a radio stream).
+  uint32 duration_ms = 6;
+  // Position at `elapsed_at_unix_ms`; while playing the UI counts on from there.
+  uint32 elapsed_ms = 7;
+  int64 elapsed_at_unix_ms = 8;
+  bool playing = 9;
+  bool paused = 10;
+  // The LCD keys showing the band on the dock (left to right); empty when the band is off.
+  repeated uint32 keys = 11;
+  // Scrolling as configured: speed in px per second, pause at each end, or "…" when false.
+  uint32 scroll_px_per_second = 12;
+  uint32 scroll_pause_ms = 13;
+  bool scroll = 14;
+  bool show_cover = 15;
+  bool show_progress = 16;
+  // The player is offline or nothing is loaded.
+  bool idle = 17;
+}
+
+message Mode {
+  // Stable id, e.g. "homeassistant", "lyrion".
+  string id = 1;
+  // Shown on the dock and in the UI, e.g. "Lights".
+  string title = 2;
+  // What kind of tab it is (H15-32): "lights", "music", "keys", "demo".
+  string kind = 3;
+}
+
+message KeyFace {
+  // 1-6.
+  uint32 key = 1;
+  // Main text, e.g. "Desk lamp".
+  string label = 2;
+  // Optional second line, e.g. "60 %" or "playing".
+  string detail = 3;
+  FaceState state = 4;
+  // Optional key image (H15-28): the name of an uploaded image (see ListKeyAssets), drawn behind
+  // the label. Empty: text only.
+  string image = 5;
+  // Part of the now-playing band (H15-88): drawn instead of label/detail.
+  BandSlice band = 6;
+  // A level 0-100 (e.g. the volume, H15-95): the key fills from the left like a bar, with the
+  // percentage large on it and `label` small above (`detail`, when set, instead of the
+  // percentage, e.g. "3200 K"). Unset: an ordinary face.
+  optional uint32 level = 7;
+  // How `level` is drawn (H15-97).
+  LevelStyle level_style = 8;
+}
+
+// How a key draws its level (H15-97).
+enum LevelStyle {
+  // The plain bar (H15-95).
+  LEVEL_STYLE_UNSPECIFIED = 0;
+  // A colour temperature: the bar runs warm (left) to cold (right).
+  LEVEL_STYLE_TEMPERATURE = 1;
+  // The ordinary face (label, detail, image) with the level as a thin strip along the bottom,
+  // e.g. a light's brightness on its own key.
+  LEVEL_STYLE_STRIP = 2;
+}
+
+// One key of a band of keys that shows one scrolling line (H15-88). The band is `count` keys wide;
+// this is key `index` (0 = left). The text is drawn `offset` px left of the band's start.
+message BandSlice {
+  string text = 1;
+  int32 offset = 2;
+  uint32 index = 3;
+  uint32 count = 4;
+  // Progress bar along the band's bottom edge, 0-1000; ignored without `show_progress`.
+  uint32 progress = 5;
+  bool show_progress = 6;
+  // A cover cached by the daemon under this key, drawn dimmed behind the text; empty: none.
+  string cover = 7;
+  // Paused or idle: dimmer text.
+  bool dim = 8;
+}
+
+enum FaceState {
+  FACE_STATE_UNSPECIFIED = 0;
+  // Neutral: an action that can be triggered.
+  FACE_STATE_IDLE = 1;
+  // Something that is on (a light, a toggle).
+  FACE_STATE_ON = 2;
+  // The current item (the playing playlist, the selected light).
+  FACE_STATE_ACTIVE = 3;
+  // Not reachable right now.
+  FACE_STATE_UNAVAILABLE = 4;
+}
+
+message KnobRole {
+  // 1-3.
+  uint32 knob = 1;
+  // e.g. "Brightness", "Volume".
+  string label = 2;
+}
+
+message DeviceEvent {
+  // `Device.id` of the device the event is about.
+  string device_id = 1;
+  // When the daemon saw the event, milliseconds since the Unix epoch.
+  uint64 timestamp_unix_ms = 2;
+  oneof kind {
+    // The device was attached, or was already attached when the stream started.
+    Device attached = 3;
+    Detached detached = 4;
+    KeyEvent key = 5;
+    KnobEvent knob = 6;
+    // A device property changed, e.g. the brightness. Carries the full device.
+    Device updated = 7;
+    // An LCD key now shows a new image (or is blank). Fetch the pixels from
+    // `/dock/{device_id}/keys/{key}?v={version}`. Also sent for every key after `attached` at the
+    // start of the stream.
+    KeyImage key_image = 8;
+  }
+}
+
+message KeyImage {
+  // 1-6.
+  uint32 key = 1;
+  // Increases with every change of any key on any dock; use it to bust caches.
+  uint64 version = 2;
+  // True when the key is blank (nothing to fetch).
+  bool blank = 3;
+}
+
+message Detached {}
+
+message KeyEvent {
+  // 1-6 LCD keys, 7-9 plain buttons.
+  uint32 key = 1;
+  // true = pressed down, false = released.
+  bool pressed = 2;
+}
+
+message KnobEvent {
+  // 1 = bottom left, 2 = top, 3 = bottom right.
+  uint32 knob = 1;
+  oneof action {
+    // Detents turned: positive clockwise, negative counter-clockwise.
+    sint32 turned = 2;
+    // true = pressed down, false = released.
+    bool pressed = 3;
+  }
+}
+
+message SetBrightnessRequest {
+  string device_id = 1;
+  // 0-100; larger values are clamped to 100.
+  uint32 percent = 2;
+}
+
+message SetBrightnessResponse {}
+
+message SetKeyImageRequest {
+  string device_id = 1;
+  // 1-6.
+  uint32 key = 2;
+  // An encoded image (PNG or JPEG) of any size, shown upright; the daemon fits it to 64x64.
+  bytes image = 3;
+}
+
+message SetKeyImageResponse {}
+
+message ClearKeyImageRequest {
+  string device_id = 1;
+  // 1-6.
+  uint32 key = 2;
+}
+
+message ClearKeyImageResponse {}
+
+message SetModeRequest {
+  // `Mode.id`.
+  string mode = 1;
+}
+
+message SetModeResponse {}
+
+message SetProfileRequest {
+  // A name from `Screen.profiles`.
+  string profile = 1;
+}
+
+message SetProfileResponse {}
+
+message SendInputRequest {
+  // `Device.id` of the dock the input is for.
+  string device_id = 1;
+  oneof input {
+    // Keys 1-9. A click is a press followed by a release.
+    KeyEvent key = 2;
+    // Knobs 1-3; `turned` within -20..20 and not 0.
+    KnobEvent knob = 3;
+  }
+}
+
+message SendInputResponse {}
+
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  // The config file the settings live in (it may not exist yet).
+  string config_path = 1;
+  repeated ModuleSettings modules = 2;
+  // Daemon settings, shown read-only (change them in the config file).
+  repeated SettingValue daemon = 3;
+}
+
+message ModuleSettings {
+  // Module id, e.g. "homeassistant".
+  string id = 1;
+  // e.g. "Lights (Home Assistant)".
+  string title = 2;
+  // What the module does, one or two sentences.
+  string help = 3;
+  // Whether the config has a table for the module, and whether it is enabled.
+  bool configured = 4;
+  bool enabled = 5;
+  repeated SettingField fields = 6;
+  // Current values by field key; empty for unset optional fields and for secrets.
+  map<string, string> values = 7;
+  // Problem with the current settings, if the module can't start with them.
+  string error = 8;
+}
+
+message SettingField {
+  string key = 1;
+  string label = 2;
+  string help = 3;
+  SettingType type = 4;
+  bool required = 5;
+  // Shown as placeholder; used when the field is empty.
+  string default_value = 6;
+  // For secrets: whether one is stored.
+  bool secret_set = 7;
+  // Whether GetSettingChoices can suggest values for this field.
+  bool has_choices = 8;
+}
+
+enum SettingType {
+  SETTING_TYPE_UNSPECIFIED = 0;
+  SETTING_TYPE_TEXT = 1;
+  SETTING_TYPE_URL = 2;
+  SETTING_TYPE_INTEGER = 3;
+  SETTING_TYPE_BOOL = 4;
+  // Write-only: set with SetSecret, never returned.
+  SETTING_TYPE_SECRET = 5;
+}
+
+message SettingValue {
+  string key = 1;
+  string label = 2;
+  string value = 3;
+}
+
+message UpdateModuleSettingsRequest {
+  string module = 1;
+  bool enabled = 2;
+  // All non-secret fields by key; empty = unset (default).
+  map<string, string> values = 3;
+}
+
+message UpdateModuleSettingsResponse {
+  // True when the change only takes effect after a daemon restart. Module settings are applied
+  // at once (hot reload); this is set only if that failed.
+  bool restart_required = 1;
+}
+
+message SetSecretRequest {
+  string module = 1;
+  string key = 2;
+  string value = 3;
+}
+
+message SetSecretResponse {}
+
+message GetSettingChoicesRequest {
+  string module = 1;
+  string key = 2;
+  // The form's current values (e.g. the URL to ask).
+  map<string, string> values = 3;
+}
+
+message GetSettingChoicesResponse {
+  // The values to suggest (for a free text field).
+  repeated string choices = 1;
+  // The same with a label, where the stored value isn't what people read: Lyrion players are
+  // stored by MAC and shown by name (H15-87). Same order as `choices`.
+  repeated SettingChoice options = 2;
+}
+
+message SettingChoice {
+  // What is stored, e.g. "aa:aa:00:00:00:06".
+  string value = 1;
+  // What is shown, e.g. "airplay Bedroom".
+  string label = 2;
+  // A short state, e.g. "playing" or "offline"; empty for none.
+  string detail = 3;
+}
+
+message ExportBackupRequest {}
+
+message ExportBackupResponse {
+  // The backup file (TOML).
+  bytes data = 1;
+  // Suggested file name, e.g. `streamdockd-backup-2026-10-18.toml`.
+  string file_name = 2;
+}
+
+message ImportBackupRequest {
+  bytes data = 1;
+}
+
+message ImportBackupResponse {
+  // True when daemon settings outside the modules changed (e.g. brightness, night window), or
+  // applying the modules failed; modules are otherwise applied at once.
+  bool restart_required = 1;
+  // Secrets the imported modules need but this machine doesn't have yet.
+  repeated MissingSecret missing_secrets = 2;
+  // What the import did, for the user (e.g. which local values were kept).
+  repeated string notes = 3;
+}
+
+message MissingSecret {
+  string module = 1;
+  string key = 2;
+  string label = 3;
+}
+
+// An uploaded key image.
+message KeyAsset {
+  // Lowercase letters, digits, "-" and "_", at most 64 characters.
+  string name = 1;
+  uint32 width = 2;
+  uint32 height = 3;
+  // Size of the stored PNG.
+  uint64 size_bytes = 4;
+  // A PNG of at most 64×64 pixels.
+  bytes preview = 5;
+  // A built-in icon (H15-48), shipped with the daemon and tinted by the key's state; can't be
+  // deleted, but an upload with the same name replaces it.
+  bool builtin = 6;
+  // For built-in icons: "Lights", "Blinds", "Home", "Audio", "Tools".
+  string group = 7;
+}
+
+message ListKeyAssetsRequest {}
+
+message ListKeyAssetsResponse {
+  repeated KeyAsset assets = 1;
+}
+
+message SetKeyAssetRequest {
+  string name = 1;
+  // The image file (PNG or JPEG).
+  bytes data = 2;
+}
+
+message SetKeyAssetResponse {
+  KeyAsset asset = 1;
+}
+
+message DeleteKeyAssetRequest {
+  string name = 1;
+}
+
+message DeleteKeyAssetResponse {
+  // False when there was no image of that name.
+  bool deleted = 1;
+}
+
+// ---------- Custom keys editor (H15-29) ----------
+
+// `[modules.keys]`.
+message KeyPages {
+  // Whether the keys module is enabled.
+  bool enabled = 1;
+  // Allows `command` actions (they run programs as the daemon's user).
+  bool allow_commands = 2;
+  repeated KeyPage pages = 3;
+}
+
+// `[[modules.keys.page]]`: one mode.
+message KeyPage {
+  // Mode id; empty for the default ("keys", "keys-2", …).
+  string id = 1;
+  string title = 2;
+  repeated KeySlot keys = 3;
+  repeated KnobSlot knobs = 4;
+}
+
+// `[[modules.keys.page.key]]`.
+message KeySlot {
+  // 1-6 LCD keys, 7-9 buttons.
+  uint32 key = 1;
+  string label = 2;
+  string detail = 3;
+  // Uploaded key image name (H15-28); empty for none.
+  string image = 4;
+  KeyAction action = 5;
+}
+
+// `[[modules.keys.page.knob]]`: knob 1 or 2 (knob 3 switches modes).
+message KnobSlot {
+  uint32 knob = 1;
+  string label = 2;
+  // At least one of them.
+  KeyAction turn = 3;
+  KeyAction press = 4;
+}
+
+message KeyAction {
+  oneof kind {
+    HttpAction http = 1;
+    CommandAction command = 2;
+    ModeAction mode = 3;
+    ProfileAction profile = 4;
+    BrightnessAction brightness = 5;
+    HomeAssistantAction homeassistant = 6;
+    LyrionAction lyrion = 7;
+    MultiAction multi = 8;
+    ToggleAction toggle = 9;
+    AudioAction audio = 10;
+    AssistAction assist = 11;
+  }
+}
+
+// Push-to-talk (H15-43): while the key is held, the request goes to Home Assistant's assist pipeline
+// (settings in `[modules.homeassistant.assist]`); only directly on a key.
+message AssistAction {
+  // Tap mode (H15-69): a tap starts, the end of speech ends it; false = hold to talk.
+  bool tap = 1;
+}
+
+// This machine's audio output (H15-50; needs `[audio] manage = true`).
+message AudioAction {
+  oneof change {
+    // Change the selected output's volume by this many percent per knob detent (or per press).
+    int32 step = 1;
+    // Mute or unmute the selected output.
+    bool toggle_mute = 2;
+  }
+}
+
+message HttpAction {
+  // Default "POST".
+  string method = 1;
+  string url = 2;
+  // Empty: no body.
+  string body = 3;
+  map<string, string> headers = 4;
+  // 0: the default (10 s).
+  uint32 timeout_ms = 5;
+}
+
+message CommandAction {
+  // Program and arguments; no shell.
+  repeated string argv = 1;
+  uint32 timeout_ms = 2;
+}
+
+message ModeAction {
+  string id = 1;
+}
+
+message ProfileAction {
+  string name = 1;
+}
+
+message BrightnessAction {
+  oneof change {
+    // Set to this percentage.
+    uint32 set = 1;
+    // Change by this many percent per knob detent (or per press).
+    int32 step = 2;
+  }
+}
+
+message HomeAssistantAction {
+  // "domain.service", e.g. "light.toggle".
+  string service = 1;
+  // The service data as a JSON object, e.g. {"entity_id": "light.desk"}; empty for none.
+  string data_json = 2;
+}
+
+message LyrionAction {
+  // An LMS command for the configured player, e.g. ["mixer", "volume", "{delta}"].
+  repeated string command = 1;
+  // Another player than `[modules.lyrion] player` (name or MAC); empty for that one.
+  string player = 2;
+}
+
+message MultiAction {
+  repeated MultiStep steps = 1;
+}
+
+message MultiStep {
+  oneof step {
+    KeyAction action = 1;
+    // Wait this long (at most 60000).
+    uint32 delay_ms = 2;
+  }
+}
+
+message ToggleAction {
+  KeyAction on = 1;
+  KeyAction off = 2;
+  string on_label = 3;
+  string off_label = 4;
+  string on_image = 5;
+  string off_image = 6;
+  // A Home Assistant entity the key follows; empty: the one both sides call, if any.
+  string state = 7;
+}
+
+message GetKeyPagesRequest {}
+
+message GetKeyPagesResponse {
+  KeyPages pages = 1;
+  // For the pickers: the other modes' ids, configured profiles and uploaded key images.
+  repeated string modes = 2;
+  repeated string profiles = 3;
+  // Uploaded key images (H15-28).
+  repeated string images = 4;
+  // Whether `[modules.homeassistant]` / `[modules.lyrion]` are configured (their actions need them).
+  bool homeassistant = 5;
+  bool lyrion = 6;
+  // Built-in icons (H15-48), usable like images.
+  repeated KeyAsset icons = 7;
+}
+
+message SaveKeyPagesRequest {
+  KeyPages pages = 1;
+}
+
+message SaveKeyPagesResponse {
+  // True if applying failed and the daemon must be restarted to use the new keys.
+  bool restart_required = 1;
+}
+
+message AddTabRequest {
+  // "lights", "music" or "keys".
+  string kind = 1;
+  string title = 2;
+  // Lights: the area whose lights fill the keys; empty = start empty and pin entities per key.
+  string area = 3;
+  // Music: the player; empty = the default player.
+  string player = 4;
+  // The active profile (Screen.active_profile): the new tab joins it.
+  string profile = 5;
+}
+
+message AddTabResponse {
+  string mode = 1;
+}
+
+message RenameTabRequest {
+  string mode = 1;
+  string title = 2;
+}
+
+message RenameTabResponse {}
+
+message GetMusicTabRequest {
+  string mode = 1;
+}
+
+message GetMusicTabResponse {
+  // As written in the config: a MAC or (older configs) a name; empty = inherited/the default.
+  string player = 1;
+  // The player that applies: this one, else the top-level player, else the default.
+  string effective_player = 2;
+}
+
+message SetMusicTabPlayerRequest {
+  string mode = 1;
+  // The player's MAC (or name).
+  string player = 2;
+}
+
+message SetMusicTabPlayerResponse {}
+
+message DeleteTabRequest {
+  string mode = 1;
+}
+
+message DeleteTabResponse {}
+
+message MoveTabsRequest {
+  // Mode ids in the new order.
+  repeated string order = 1;
+  // The active profile, if any: its mode list is reordered; else the global tab order.
+  string profile = 2;
+}
+
+message MoveTabsResponse {}
+
+message ConvertTabRequest {
+  string mode = 1;
+}
+
+message ConvertTabResponse {
+  // The new keys tab.
+  string mode = 1;
+}
+
+// `now_playing` of a music tab (H15-88).
+message NowPlayingSettings {
+  // LCD keys of the band, left to right (at most 3); empty: no band on the dock.
+  repeated uint32 keys = 1;
+  // "title", "artist", "album" in the order shown.
+  repeated string fields = 2;
+  string separator = 3;
+  // Scroll speed in px per second (5-200) and the pause at each end (0-10000 ms).
+  uint32 speed = 4;
+  uint32 pause_ms = 5;
+  // Scroll long text; false: cut it with "…".
+  bool scroll = 6;
+  bool cover = 7;
+  bool progress = 8;
+  // Frames per second on the dock while scrolling (1-10).
+  uint32 fps = 9;
+}
+
+message GetNowPlayingRequest {
+  string mode = 1;
+}
+
+message GetNowPlayingResponse {
+  NowPlayingSettings settings = 1;
+}
+
+message SetNowPlayingRequest {
+  string mode = 1;
+  NowPlayingSettings settings = 2;
+}
+
+message SetNowPlayingResponse {}
+
+message GetLightsTabRequest {
+  string mode = 1;
+}
+
+message GetLightsTabResponse {
+  // The area whose lights fill the keys when nothing is pinned.
+  string area = 1;
+  // Keys show the pinned entities (not the area's lights).
+  bool pinned = 2;
+  // What each key shows now (pinned or from the area), when Home Assistant answered.
+  repeated LightsKey keys = 3;
+  // Knob 1 and 2: "brightness", "color_temp" or "none".
+  string knob1 = 4;
+  string knob2 = 5;
+}
+
+message LightsKey {
+  uint32 key = 1;
+  string entity = 2;
+  // Empty: the entity's name.
+  string label = 3;
+  // Cover only: open, close, stop. Mutually exclusive with service.
+  string action = 4;
+  // domain.service, targeting only entity; no custom data.
+  string service = 5;
+  // Built-in icon or uploaded image name. Empty: domain/state default.
+  string icon = 6;
+}
+
+message SetLightsKeyRequest {
+  string mode = 1;
+  uint32 key = 2;
+  // Empty: the key shows nothing.
+  string entity = 3;
+  string label = 4;
+  // Cover only: open, close, stop. Mutually exclusive with service.
+  string action = 5;
+  // domain.service, targeting only entity; no custom data.
+  string service = 6;
+  // Built-in icon or uploaded image name. Empty: domain/state default.
+  string icon = 7;
+}
+
+message SetLightsKeyResponse {}
+
+message SetLightsKnobRequest {
+  string mode = 1;
+  uint32 knob = 2;
+  // "brightness", "color_temp" or "none".
+  string function = 3;
+}
+
+message SetLightsKnobResponse {}
+
+message ListHomeAssistantEntitiesRequest {}
+
+message ListHomeAssistantEntitiesResponse {
+  repeated HomeAssistantEntity entities = 1;
+}
+
+message HomeAssistantEntity {
+  string entity_id = 1;
+  string name = 2;
+  // The entity's (or its device's) area; empty if none.
+  string area = 3;
+}
+
+// ---------- Network: Wi-Fi and Bluetooth (H15-38) ----------
+
+message GetNetworkRequest {}
+
+message GetNetworkResponse {
+  // `[network] manage` is on; when false nothing else is set.
+  bool managed = 1;
+  WifiStatus wifi = 2;
+  BluetoothStatus bluetooth = 3;
+  EthernetStatus ethernet = 4;
+  // "off", "fallback" or "both" (see SetWifiMode).
+  string wifi_mode = 5;
+}
+
+message WifiStatus {
+  // NetworkManager has a Wi-Fi device; else `problem` says why not.
+  bool available = 1;
+  // e.g. "wlan0".
+  string interface = 2;
+  // Empty when not connected.
+  string connected_ssid = 3;
+  string problem = 4;
+  // Every IPv4 and IPv6 address on the link, as "address/prefix".
+  repeated string addresses = 5;
+  // The radio is on (see GetNetworkResponse.wifi_mode).
+  bool radio_on = 6;
+  repeated NetworkAddress address_details = 7;
+  string gateway = 8;
+  string gateway6 = 9;
+  repeated string dns = 10;
+}
+
+// One address, with Linux address flags where available (H15-63).
+message NetworkAddress {
+  // Address and prefix, e.g. "2001:db8::1/64".
+  string cidr = 1;
+  // "global", "link-local", "unique-local", "private" or "loopback".
+  string scope = 2;
+  bool temporary = 3;
+  bool stable_privacy = 4;
+}
+
+// Configured values, rather than addresses or DNS learned from the router.
+message EthernetIpv6Settings {
+  string method = 1;
+  string address = 2;
+  uint32 prefix = 3;
+  string gateway = 4;
+  repeated string dns = 5;
+}
+
+message BluetoothStatus {
+  // BlueZ has an adapter; else `problem` says why not (e.g. no Bluetooth stack).
+  bool available = 1;
+  bool powered = 2;
+  // The adapter's name, as other devices see it.
+  string name = 3;
+  string problem = 4;
+}
+
+message WifiNetwork {
+  string ssid = 1;
+  // 0-100.
+  uint32 signal = 2;
+  // Needs a password (WPA/WEP).
+  bool secure = 3;
+  uint32 frequency_mhz = 4;
+  bool in_use = 5;
+  // A saved connection exists, so no password is needed.
+  bool saved = 6;
+}
+
+message ListWifiNetworksRequest {
+  bool rescan = 1;
+}
+
+message ListWifiNetworksResponse {
+  repeated WifiNetwork networks = 1;
+}
+
+message ConnectWifiRequest {
+  string ssid = 1;
+  string password = 2;
+}
+
+message ConnectWifiResponse {}
+
+message DisconnectWifiRequest {}
+
+message DisconnectWifiResponse {}
+
+message ForgetWifiRequest {
+  string ssid = 1;
+}
+
+message ForgetWifiResponse {
+  // False when nothing was saved for that SSID.
+  bool forgotten = 1;
+}
+
+message BluetoothDevice {
+  // "00:11:22:33:44:55".
+  string address = 1;
+  string name = 2;
+  bool paired = 3;
+  bool connected = 4;
+  // Offers an audio profile (speaker, headset).
+  bool audio = 5;
+  // BlueZ's icon name, e.g. "audio-headset".
+  string icon = 6;
+  // The codec of the audio stream, e.g. "LDAC 48 kHz" or "SBC-XQ 44.1 kHz"; empty without one.
+  string codec = 7;
+}
+
+message GetBluetoothDeviceRequest {
+  string address = 1;
+}
+
+message GetBluetoothDeviceResponse {
+  BluetoothDeviceDetail device = 1;
+}
+
+message BluetoothDeviceDetail {
+  BluetoothDevice device = 1;
+  // BlueZ's alias (the name the user may have set).
+  string alias = 2;
+  // "public" or "random".
+  string address_type = 3;
+  // The class of device, e.g. "0x240404", with its meaning ("Audio/Video: headphones").
+  string class = 4;
+  string class_text = 5;
+  bool trusted = 6;
+  bool blocked = 7;
+  // Long-term keys stored; unset where BlueZ doesn't say (before 5.69).
+  optional bool bonded = 8;
+  bool legacy_pairing = 9;
+  // Signal strength in dBm; only while a scan sees the device.
+  optional int32 rssi = 10;
+  // Battery in percent, if the device reports it.
+  optional uint32 battery = 11;
+  // e.g. "usb:v054Cp0D58d0100".
+  string modalias = 12;
+  repeated BluetoothProfile profiles = 13;
+  repeated BluetoothTransport transports = 14;
+  // The controller: "hci0", its address and how it is attached ("UART", "USB", "SDIO").
+  string adapter = 15;
+  string adapter_address = 16;
+  string adapter_bus = 17;
+  // H15-53: more of what BlueZ knows.
+  // Where the battery level comes from, e.g. "HFP" (BlueZ 5.66+).
+  string battery_source = 18;
+  // Advertised transmit power in dBm; only from a scan.
+  optional int32 tx_power = 19;
+  // BlueZ has read the device's services.
+  bool services_resolved = 20;
+  // The device may wake this machine.
+  bool wake_allowed = 21;
+  // GAP appearance of LE devices, e.g. "0x0941 (wearable audio device)".
+  string appearance = 22;
+  // Advertised manufacturer data.
+  repeated BluetoothManufacturerData manufacturer_data = 23;
+  // The modalias decoded: "Sony (054C), product 0D58, version 0100 (USB IDs)".
+  string device_id = 24;
+  // The controller's name as others see it, its device ID and roles ("central", "peripheral").
+  string adapter_name = 25;
+  string adapter_device_id = 26;
+  repeated string adapter_roles = 27;
+  bool adapter_discoverable = 28;
+  bool adapter_pairable = 29;
+  // The live link while connected (H15-53); unset while not connected.
+  BluetoothLink link = 30;
+  // H15-78: the audio codecs PipeWire offers for this device while it is connected (empty
+  // otherwise, or where the daemon doesn't manage the audio), the active one, LDAC's quality and
+  // the remembered choice (reapplied on every connect).
+  repeated BluetoothCodec codecs = 31;
+  string active_codec = 32;
+  // "auto", "hq", "sq" or "mq" while LDAC is active.
+  string ldac_quality = 33;
+  BluetoothCodecChoice preferred = 34;
+  // The A2DP link's sample rate in Hz while connected (0 = unknown). The audio graph runs at
+  // 48 kHz; at another rate the Bluetooth sink resamples (H15-78).
+  uint32 link_rate = 35;
+  // false (default): a link at another rate than 48 kHz is renegotiated once per connect;
+  // true: the rate the headset chose is kept.
+  bool any_link_rate = 36;
+}
+
+message BluetoothCodec {
+  // PipeWire's id, e.g. "ldac", "sbc_xq".
+  string id = 1;
+  // e.g. "LDAC", "SBC-XQ".
+  string label = 2;
+}
+
+message BluetoothCodecChoice {
+  // Codec id; empty = PipeWire's automatic choice.
+  string codec = 1;
+  // For LDAC: "auto", "hq", "sq" or "mq"; empty = auto.
+  string ldac_quality = 2;
+}
+
+// A connection's live state from the kernel (MGMT "Get Connection Information"). Reading it needs
+// CAP_NET_ADMIN, which the Luckfox service has.
+message BluetoothLink {
+  // Received signal strength in dBm.
+  optional int32 rssi = 1;
+  // Our transmit power on this link and its maximum, in dBm.
+  optional int32 tx_power = 2;
+  optional int32 max_tx_power = 3;
+  // Why the link could not be read, e.g. "needs CAP_NET_ADMIN"; empty when it was.
+  string problem = 4;
+}
+
+message BluetoothManufacturerData {
+  // Bluetooth SIG company identifier.
+  uint32 company_id = 1;
+  // e.g. "Sony"; empty where we don't know it.
+  string company = 2;
+  // The payload as hex.
+  string data_hex = 3;
+}
+
+message BluetoothProfile {
+  string uuid = 1;
+  // e.g. "A2DP sink"; empty for vendor UUIDs.
+  string name = 2;
+}
+
+// An audio stream (BlueZ MediaTransport1).
+message BluetoothTransport {
+  // Our side's profile, e.g. "A2DP source" when we play to a headset.
+  string profile = 1;
+  // "idle", "pending" or "active".
+  string state = 2;
+  // e.g. "LDAC 48 kHz".
+  string codec = 3;
+  // Decoded configuration, e.g. "48 kHz, stereo" or "44.1 kHz, dual channel, bitpool 2–53".
+  string configuration = 4;
+  // The raw configuration bytes as hex ("2d 01 00 00 aa 00 10 01").
+  string configuration_hex = 5;
+  // AVRCP absolute volume 0–127, if the device supports it.
+  optional uint32 volume = 6;
+  // The bandwidth of the stream (H15-53), e.g. "up to 328 kbit/s" or "330–990 kbit/s, chosen by
+  // the encoder" (LDAC); empty where unknown.
+  string bitrate = 7;
+  // The delay the device reports (A2DP delay reporting), in milliseconds.
+  optional double delay_ms = 8;
+}
+
+message ListBluetoothDevicesRequest {
+  bool scan = 1;
+}
+
+message ListBluetoothDevicesResponse {
+  repeated BluetoothDevice devices = 1;
+  // A scan is running (it runs ~30 s in the background; poll while true, H15-45).
+  bool scanning = 2;
+}
+
+message ConnectBluetoothRequest {
+  string address = 1;
+}
+
+message ConnectBluetoothResponse {}
+
+message DisconnectBluetoothRequest {
+  string address = 1;
+}
+
+message DisconnectBluetoothResponse {}
+
+message RemoveBluetoothRequest {
+  string address = 1;
+}
+
+message RemoveBluetoothResponse {}
+
+message SetBluetoothPowerRequest {
+  bool on = 1;
+}
+
+message SetBluetoothPowerResponse {}
+
+message EthernetStatus {
+  bool available = 1;
+  // e.g. "eth0".
+  string interface = 2;
+  // A cable with a live link is plugged in.
+  bool carrier = 3;
+  bool connected = 4;
+  // The configured method: DHCP, else a static address.
+  bool dhcp = 5;
+  // The current IPv4 address and prefix (from DHCP or static), e.g. "192.168.1.141" / 24.
+  string address = 6;
+  uint32 prefix = 7;
+  string gateway = 8;
+  repeated string dns = 9;
+  // A change is on trial and is reverted in this many seconds unless confirmed; 0 = none.
+  uint32 revert_in_seconds = 10;
+  string problem = 11;
+  // Every IPv4 and IPv6 address on the link, as "address/prefix" (H15-44).
+  repeated string addresses = 12;
+  string gateway6 = 13;
+  // NetworkManager's IPv6 method: "auto", "dhcp", "manual", "disabled", "ignore".
+  string ipv6_method = 14;
+  repeated NetworkAddress address_details = 15;
+  EthernetIpv6Settings ipv6_config = 16;
+  // IPv4 DNS only, for the IPv4 form (dns above includes both families).
+  repeated string ipv4_dns = 17;
+}
+
+message SetEthernetRequest {
+  // DHCP; when false, the static fields below apply.
+  bool dhcp = 1;
+  string address = 2;
+  // e.g. 24.
+  uint32 prefix = 3;
+  // Optional.
+  string gateway = 4;
+  repeated string dns = 5;
+  // IPv6: "auto" (SLAAC), "dhcp", "static" or "disabled"; empty keeps the current setup.
+  string ipv6_method = 6;
+  string ipv6_address = 7;
+  // e.g. 64.
+  uint32 ipv6_prefix = 8;
+  string ipv6_gateway = 9;
+  repeated string ipv6_dns = 10;
+  // IPv6-only change: preserve the entire applied/saved IPv4 section unchanged.
+  bool keep_ipv4 = 11;
+}
+
+message SetEthernetResponse {
+  // The change is reverted in this many seconds unless ConfirmEthernet is called.
+  uint32 revert_in_seconds = 1;
+}
+
+message ConfirmEthernetRequest {}
+
+message ConfirmEthernetResponse {}
+
+message SetWifiModeRequest {
+  // "off", "fallback" or "both".
+  string mode = 1;
+}
+
+message SetWifiModeResponse {}
+
+// This machine's audio (H15-50).
+message AudioState {
+  // Every output (PipeWire sink) except our tone filter, in a stable order.
+  repeated AudioOutput outputs = 1;
+  AudioTone tone = 2;
+  // Why the audio can't be read (PipeWire not running …); empty when fine.
+  string problem = 3;
+  // The correction presets to choose from (H15-54).
+  repeated AudioPreset presets = 4;
+}
+
+message AudioOutput {
+  // PipeWire node name, e.g. "bluez_output.02_00_00_00_00_B4.a2dp-sink"; the id for Set* calls.
+  string name = 1;
+  // Human name, e.g. "WH-1000XM4", "Built-in Audio Stereo".
+  string description = 2;
+  // "bluetooth", "usb", "builtin" or "other".
+  string kind = 3;
+  // Everything plays here.
+  bool selected = 4;
+  // 0..=150, as wpctl shows it (cubic, 100 = unity).
+  uint32 volume_percent = 5;
+  bool muted = 6;
+  // Bluetooth codec, e.g. "ldac", "sbc_xq"; empty otherwise.
+  string codec = 7;
+  // Playing right now.
+  bool running = 8;
+  // Sample rate PipeWire runs it at, e.g. 48000; 0 if unknown.
+  uint32 sample_rate = 9;
+  // Bluetooth while playing: what the controller sends (the codec's real bitrate), measured every
+  // 3 s; 0 otherwise.
+  uint32 bitrate_kbps = 10;
+}
+
+message AudioTone {
+  // Gain in dB, -12..=12; 0 = flat.
+  double bass_db = 1;
+  double mid_db = 2;
+  double treble_db = 3;
+  // -1 (left only) ..= 1 (right only); 0 = centre.
+  double balance = 4;
+  // The DSP runs (the board's "Streamdock DSP" sink); when false, no sound setting can apply.
+  bool available = 5;
+  // Sound character (H15-54): -1 warm ..= 1 bright, and -1 relaxed ..= 1 energetic.
+  double warmth = 6;
+  double energy = 7;
+  // More bass (and a little treble) the lower the volume.
+  bool loudness = 8;
+  // Correction EQ: a preset id (`AudioState.presets`), "custom" (then `bands`) or "" (off).
+  string correction = 9;
+  // The custom correction: 10 bands, a low shelf, 8 peaks, a high shelf.
+  repeated AudioBand bands = 10;
+  // Gain before the limiter, -20..=20 dB (a correction preset adds its own).
+  double preamp_db = 11;
+  // Headphone crossfeed (bs2b) and its feeding level, 1..=15 dB (lower = stronger).
+  bool crossfeed = 12;
+  double crossfeed_db = 13;
+  // Limiter ceiling, -20..=0 dB.
+  double limit_db = 14;
+  // What loudness adds right now at the current volume (read-only).
+  double loudness_bass_db = 15;
+  double loudness_treble_db = 16;
+}
+
+message AudioBand {
+  double freq_hz = 1;
+  double gain_db = 2;
+  double q = 3;
+}
+
+// A built-in correction target, e.g. a headphone's AutoEq EQ.
+message AudioPreset {
+  string id = 1;
+  string label = 2;
+}
+
+message GetAudioRequest {}
+
+message GetAudioResponse {
+  // False where the daemon doesn't manage the audio; then `state` is unset.
+  bool managed = 1;
+  AudioState state = 2;
+}
+
+message SetAudioOutputRequest {
+  string name = 1;
+}
+
+message SetAudioOutputResponse {}
+
+message SetAudioVolumeRequest {
+  string name = 1;
+  // 0..=150.
+  uint32 volume_percent = 2;
+  bool muted = 3;
+}
+
+message SetAudioVolumeResponse {}
+
+message SetAudioToneRequest {
+  // `available` and the read-only loudness values are ignored.
+  AudioTone tone = 1;
+}
+
+message SetAudioToneResponse {}
+
+// `[player]` in the config (H15-52).
+message PlayerSettings {
+  bool enabled = 1;
+  // The name in Lyrion.
+  string name = 2;
+  // A fixed server, "ip" or "ip:port"; empty = find one by discovery.
+  string server = 3;
+  // Highest sample rate offered to Lyrion (it resamples above): 44100, 48000, 96000 or 192000.
+  uint32 max_sample_rate = 4;
+  // Formats offered to Lyrion in preference order ("flac", "mp3", "pcm"); ["pcm"] = Lyrion
+  // transcodes everything.
+  repeated string formats = 5;
+  // Decoded audio buffered before the output, 1000 to 20000 ms.
+  uint32 output_buffer_ms = 6;
+  // "off", "track", "album" or "smart"; empty = Lyrion's own setting.
+  string replay_gain = 7;
+  // "dsp" (through the sound settings, default), "default" (the default output, no DSP) or an
+  // output's name (`AudioOutput.name`, no DSP).
+  string output = 8;
+  // Between tracks: "none", "crossfade", "fade-in", "fade-out" or "fade-in-out"; empty = Lyrion's
+  // own setting. A crossfade raises the output buffer to its length + 1 s.
+  string transition = 9;
+  // Its length, 1 to 10 s.
+  uint32 transition_seconds = 10;
+  // Who converts to the output's sample rate (H15-80): "pipewire", or the player at "fast",
+  // "balanced" (default) or "high" quality; empty = the default.
+  string resampling = 11;
+}
+
+message GetPlayerRequest {}
+
+message GetPlayerResponse {
+  PlayerSettings settings = 1;
+  // The player's state; `enabled` is false while it is off.
+  PlayerState state = 2;
+  // The sample rates `max_sample_rate` may take.
+  repeated uint32 sample_rates = 3;
+  // The outputs `output` may name, where the daemon manages the audio.
+  repeated PlayerOutput outputs = 4;
+}
+
+message PlayerOutput {
+  string name = 1;
+  string description = 2;
+}
+
+message ReconnectPlayerRequest {}
+
+message ReconnectPlayerResponse {}
+
+message ResetPlayerIdRequest {}
+
+message ResetPlayerIdResponse {
+  string player_id = 1;
+}
+
+message SetPlayerRequest {
+  PlayerSettings settings = 1;
+}
+
+message SetPlayerResponse {}
+
+message FindLyrionServersRequest {}
+
+message FindLyrionServersResponse {
+  repeated LyrionServer servers = 1;
+}
+
+message LyrionServer {
+  // "ip:port" of its player protocol (port 3483).
+  string address = 1;
+  string name = 2;
+  string version = 3;
+  // Its web UI and JSON-RPC port, usually 9000; 0 if unknown.
+  uint32 http_port = 4;
+}
+
+// ---------- Voice (H15-68, H15-69) ----------
+
+message VoiceSettings {
+  // Assist pipeline id; empty = Home Assistant's preferred one.
+  string pipeline = 1;
+  // PipeWire source; empty = the default source.
+  string microphone = 2;
+  // Play Home Assistant's spoken answer.
+  bool speak = 3;
+  // End of speech: silence after speech (ms), speech score threshold (0.05-0.95), give up without
+  // speech (ms), longest recording (s).
+  uint32 silence_ms = 4;
+  float vad_threshold = 5;
+  uint32 no_speech_ms = 6;
+  uint32 max_seconds = 7;
+  // Wake word model id; empty = no wake word.
+  string wake_word = 8;
+  // Its detection threshold 0.5-0.99; unset = the model's own.
+  optional float wake_threshold = 9;
+}
+
+message WakeWordModel {
+  string id = 1;
+  // What to say, e.g. "Okay Nabu".
+  string wake_word = 2;
+  // Languages it was trained for.
+  repeated string languages = 3;
+  // Its default threshold and sliding window (invocations of 30 ms).
+  float threshold = 4;
+  uint32 window = 5;
+  bool builtin = 6;
+  uint32 size_bytes = 7;
+  string author = 8;
+}
+
+message Microphone {
+  // PipeWire node name and description.
+  string name = 1;
+  string description = 2;
+}
+
+message GetVoiceRequest {}
+
+message GetVoiceResponse {
+  // Home Assistant is set up (push-to-talk and the wake word need it).
+  bool available = 1;
+  VoiceSettings settings = 2;
+  repeated WakeWordModel models = 3;
+  // The microphones PipeWire offers right now.
+  repeated Microphone microphones = 4;
+  // A WAV that replaces the microphone (`test_input`, for development); empty when unset.
+  string test_input = 5;
+}
+
+message SaveVoiceRequest {
+  VoiceSettings settings = 1;
+}
+
+message SaveVoiceResponse {}
+
+message ListAssistPipelinesRequest {}
+
+message ListAssistPipelinesResponse {
+  repeated AssistPipeline pipelines = 1;
+  // The id of Home Assistant's preferred pipeline.
+  string preferred = 2;
+}
+
+message AssistPipeline {
+  string id = 1;
+  string name = 2;
+  string language = 3;
+  // The speech-to-text language, e.g. "en".
+  string stt_language = 4;
+}
+
+message UploadWakeWordRequest {
+  // The `.tflite` model and its microWakeWord manifest (`.json`).
+  bytes model = 1;
+  bytes manifest = 2;
+}
+
+message UploadWakeWordResponse {
+  WakeWordModel model = 1;
+}
+
+message DeleteWakeWordRequest {
+  string id = 1;
+}
+
+message DeleteWakeWordResponse {}
+
+message SetBluetoothCodecRequest {
+  string address = 1;
+  BluetoothCodecChoice choice = 2;
+}
+
+message SetBluetoothCodecResponse {}
+
+message SetBluetoothLinkRateRequest {
+  string address = 1;
+  // true: keep the rate the headset chooses; false: 48 kHz.
+  bool any_rate = 2;
+}
+
+message SetBluetoothLinkRateResponse {}
+
+// ---------- Output priority (H15-79) ----------
+
+message OutputPriority {
+  // Highest first.
+  repeated PriorityOutput outputs = 1;
+  // Disconnect other Bluetooth audio devices while a higher one plays (off: they stay connected
+  // but never play unless chosen).
+  bool disconnect_others = 2;
+}
+
+message PriorityOutput {
+  // PipeWire node name.
+  string name = 1;
+  // Bluetooth address for a Bluetooth output (any of its profiles counts); empty otherwise.
+  string bluetooth = 2;
+  // Its description, also shown while it is absent.
+  string label = 3;
+  // Present right now (in responses).
+  bool present = 4;
+}
+
+message GetOutputPriorityRequest {}
+
+message GetOutputPriorityResponse {
+  OutputPriority priority = 1;
+}
+
+message SetOutputPriorityRequest {
+  OutputPriority priority = 1;
+}
+
+message SetOutputPriorityResponse {}
+
+// Build identity (H15-77).
+message GetVersionRequest {}
+
+message GetVersionResponse {
+  string version = 1;
+  // Ten-character SHA with optional -dirty; unknown in a source archive.
+  string revision = 2;
+  // Full SHA, or unknown without git.
+  string commit = 3;
+  string commit_url = 4;
+  // Build time as UTC Unix seconds; clients display it in their local time zone.
+  uint64 built_at = 5;
+  bool dirty = 6;
+}

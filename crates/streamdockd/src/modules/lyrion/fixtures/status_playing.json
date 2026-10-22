@@ -1,0 +1,57 @@
+{
+    "id": 1,
+    "result": {
+        "signalstrength": 0,
+        "playlist_cur_index": "364",
+        "playlist repeat": 0,
+        "randomplay": 0,
+        "player_name": "airplay Bedroom",
+        "waitingToPlay": 1,
+        "can_seek": 1,
+        "playlist mode": "off",
+        "duration": 120.01,
+        "rescan": "1",
+        "mode": "play",
+        "playlist shuffle": 0,
+        "remote": 1,
+        "player_connected": 1,
+        "current_title": "Kapitel 20 - Folge 10: Die Nebelinsel",
+        "remoteMeta": {
+            "id": "-94171828196056",
+            "title": "Kapitel 20 - Folge 10: Die Nebelinsel",
+            "artist": "Die Nebelbande",
+            "album": "Folge 10: Die Nebelinsel",
+            "coverart": "0"
+        },
+        "playlist_timestamp": 1792283116.10088,
+        "rate": 1,
+        "seq_no": 0,
+        "digital_volume_control": 1,
+        "mixer volume": 42,
+        "time": 2.535,
+        "player_ip": "192.168.1.13:33004",
+        "power": 1,
+        "use_volume_control": 1,
+        "playlist_loop": [
+            {
+                "artist": "Die Nebelbande",
+                "album": "Folge 10: Die Nebelinsel",
+                "id": "-94171828196056",
+                "coverart": "0",
+                "playlist index": 364,
+                "title": "Kapitel 20 - Folge 10: Die Nebelinsel"
+            }
+        ],
+        "playlist_tracks": 711
+    },
+    "params": [
+        "aa:aa:00:00:00:06",
+        [
+            "status",
+            "-",
+            "1",
+            "tags:alj"
+        ]
+    ],
+    "method": "slim.request"
+}

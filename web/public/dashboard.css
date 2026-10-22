@@ -1,0 +1,779 @@
+/*
+ * Dashboard layout (web/src/islands/Dashboard.tsx), on the design system tokens (H15-11,
+ * web/public/design/). Panels, key tiles, knobs and the slider are design system components
+ * (H15-13); this file only adds the page layout, the status bar and the event log.
+ */
+
+.sd-dashboard {
+  display: grid;
+  gap: var(--sd-space-4);
+}
+
+/* ---------- Status bar ---------- */
+
+.sd-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sd-space-2) var(--sd-space-5);
+  font-size: var(--sd-font-size-xs);
+  letter-spacing: var(--sd-tracking-wider);
+  text-transform: uppercase;
+  color: var(--sd-color-text-muted);
+}
+.sd-status__link {
+  color: var(--sd-color-warning);
+}
+.sd-status__link.is-online {
+  color: var(--sd-color-success);
+  text-shadow: var(--sd-glow-text);
+}
+.sd-status__link::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: var(--sd-space-2);
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+.sd-status__warn {
+  color: var(--sd-color-warning);
+}
+
+/* ---------- Layout ---------- */
+
+.sd-dashboard__grid {
+  display: grid;
+  gap: var(--sd-space-4);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 900px) {
+  .sd-dashboard__grid {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+  }
+}
+.sd-dashboard__devices {
+  display: grid;
+  gap: var(--sd-space-4);
+  min-width: 0;
+}
+
+.sd-device__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sd-space-2);
+}
+.sd-device__head h2 {
+  margin: 0;
+}
+.sd-device__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sd-space-1) var(--sd-space-3);
+  margin: 0;
+  font-size: var(--sd-font-size-xs);
+  letter-spacing: var(--sd-tracking-wide);
+  text-transform: uppercase;
+  color: var(--sd-color-text-muted);
+}
+.sd-device__meta dd {
+  margin: 0;
+  color: var(--sd-color-text);
+  font-family: var(--sd-font-mono);
+}
+
+/* ---------- The dock: 3x2 LCD keys, 3 buttons, knobs (2 on top, 1 and 3 below) ---------- */
+
+.sd-dock {
+  display: grid;
+  gap: var(--sd-space-4);
+  max-width: 28rem;
+  margin: var(--sd-space-4) 0;
+}
+.sd-dock__lcd,
+.sd-dock__buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sd-space-3);
+}
+.sd-dock .sd-keytile {
+  cursor: pointer;
+}
+.sd-dock__knobs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-areas: ". k2 ." "k1 . k3";
+  justify-items: center;
+}
+.sd-dock__knobs > :nth-child(1) {
+  grid-area: k1;
+}
+.sd-dock__knobs > :nth-child(2) {
+  grid-area: k2;
+}
+.sd-dock__knobs > :nth-child(3) {
+  grid-area: k3;
+}
+
+/* ---------- Brightness field ---------- */
+
+.sd-field {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--sd-space-3);
+}
+.sd-field__label {
+  font-size: var(--sd-font-size-xs);
+  letter-spacing: var(--sd-tracking-wider);
+  text-transform: uppercase;
+  color: var(--sd-color-text-muted);
+}
+.sd-field__value {
+  min-width: 3.5ch;
+  text-align: right;
+  font-family: var(--sd-font-mono);
+  color: var(--sd-color-accent);
+}
+.sd-field__error {
+  grid-column: 1 / -1;
+  font-size: var(--sd-font-size-sm);
+  color: var(--sd-color-warning);
+}
+
+/* ---------- Event log ---------- */
+
+.sd-log {
+  min-width: 0;
+}
+.sd-log__list {
+  max-height: 60vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  font-size: var(--sd-font-size-sm);
+  scrollbar-color: var(--sd-color-line) transparent;
+}
+.sd-log__entry {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: var(--sd-space-3);
+  padding: var(--sd-space-1) 0;
+  border-bottom: var(--sd-border) solid var(--sd-color-line-faint);
+}
+.sd-log__entry time,
+.sd-log__dev {
+  font-family: var(--sd-font-mono);
+  font-size: var(--sd-font-size-xs);
+  color: var(--sd-color-text-dim);
+}
+.sd-log__text {
+  letter-spacing: var(--sd-tracking-wide);
+  text-transform: uppercase;
+}
+.sd-log__entry--key .sd-log__text {
+  color: var(--sd-color-accent);
+}
+.sd-log__entry--knob .sd-log__text {
+  color: var(--sd-color-accent-2);
+}
+.sd-log__entry--device .sd-log__text {
+  color: var(--sd-color-info);
+}
+.sd-log__entry--warn .sd-log__text {
+  color: var(--sd-color-warning);
+}
+.sd-log__entry:first-child {
+  animation: sd-log-new var(--sd-dur-slow) var(--sd-ease);
+}
+@keyframes sd-log-new {
+  from {
+    background: color-mix(in srgb, var(--sd-color-accent) 22%, transparent);
+  }
+}
+
+@media (max-width: 480px) {
+  .sd-log__dev {
+    display: none;
+  }
+  .sd-log__entry {
+    grid-template-columns: auto 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-log__entry:first-child {
+    animation: none;
+  }
+}
+
+/* ---------- Modes and key faces (H15-16) ---------- */
+
+.sd-modes {
+  display: grid;
+  gap: var(--sd-space-2);
+  min-width: 0;
+  overflow-x: auto;
+}
+
+/* A key face as set by the active mode; colors follow the face state like the dock's images. */
+.sd-face {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  max-width: 100%;
+  padding: 0 var(--sd-space-1);
+  text-align: center;
+  line-height: 1.1;
+}
+.sd-face__label {
+  font-size: var(--sd-font-size-sm);
+  letter-spacing: var(--sd-tracking-wide);
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  color: var(--sd-color-text);
+}
+.sd-face__detail {
+  font-family: var(--sd-font-mono);
+  font-size: var(--sd-font-size-xs);
+  color: var(--sd-color-text-muted);
+}
+.sd-face--on .sd-face__label {
+  color: var(--sd-color-accent);
+  text-shadow: var(--sd-glow-text);
+}
+.sd-face--on .sd-face__detail {
+  color: var(--sd-color-accent);
+}
+.sd-face--active .sd-face__label,
+.sd-face--active .sd-face__detail {
+  color: var(--sd-color-accent-2);
+}
+.sd-face--unavailable .sd-face__label,
+.sd-face--unavailable .sd-face__detail {
+  color: var(--sd-color-text-dim);
+}
+
+/* Key tiles show the dock's real 64x64 images (H15-20): scale them without smoothing, so the
+   browser shows the same pixels as the dock. */
+.sd-dashboard .sd-keytile__image {
+  image-rendering: pixelated;
+}
+
+/* ---------- Activity feed (H15-21) ---------- */
+
+.sd-dashboard__side {
+  display: grid;
+  gap: var(--sd-space-4);
+  min-width: 0;
+  align-content: start;
+}
+.sd-activity {
+  min-width: 0;
+}
+.sd-activity__list {
+  max-height: 40vh;
+  margin: var(--sd-space-3) 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  font-size: var(--sd-font-size-sm);
+  scrollbar-color: var(--sd-color-line) transparent;
+}
+.sd-activity__entry {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: var(--sd-space-3);
+  padding: var(--sd-space-1) 0;
+  border-bottom: var(--sd-border) solid var(--sd-color-line-faint);
+}
+.sd-activity__entry time,
+.sd-activity__source {
+  font-family: var(--sd-font-mono);
+  font-size: var(--sd-font-size-xs);
+  color: var(--sd-color-text-muted);
+}
+.sd-activity__source {
+  text-transform: uppercase;
+  letter-spacing: var(--sd-tracking-wide);
+}
+.sd-activity__text {
+  overflow-wrap: anywhere;
+}
+.sd-activity__entry--ok .sd-activity__text {
+  color: var(--sd-color-success);
+}
+.sd-activity__entry--error {
+  background: color-mix(in srgb, var(--sd-color-critical) 10%, transparent);
+}
+.sd-activity__entry--error .sd-activity__text {
+  color: var(--sd-color-critical);
+  font-weight: 600;
+}
+.sd-activity__empty {
+  color: var(--sd-color-text-dim);
+}
+.sd-activity__entry:first-child {
+  animation: sd-log-new var(--sd-dur-slow) var(--sd-ease);
+}
+@media (max-width: 480px) {
+  .sd-activity__entry {
+    grid-template-columns: auto 1fr;
+  }
+  .sd-activity__entry time {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sd-activity__entry:first-child {
+    animation: none;
+  }
+}
+
+/* ---------- Settings screen (H15-22) ---------- */
+
+.sd-settings {
+  display: grid;
+  gap: var(--sd-space-4);
+  max-width: 48rem;
+}
+.sd-settings__help {
+  margin: 0 0 var(--sd-space-3);
+  color: var(--sd-color-text-muted);
+}
+.sd-settings__daemon {
+  display: grid;
+  gap: var(--sd-space-2);
+  margin: 0;
+}
+.sd-settings__daemon > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, auto) 1fr;
+  gap: var(--sd-space-3);
+}
+.sd-settings__daemon dt {
+  font-size: var(--sd-font-size-xs);
+  letter-spacing: var(--sd-tracking-wider);
+  text-transform: uppercase;
+  color: var(--sd-color-text-muted);
+}
+.sd-settings__daemon dd {
+  margin: 0;
+  font-family: var(--sd-font-mono);
+  overflow-wrap: anywhere;
+}
+.sd-setting {
+  display: grid;
+  gap: var(--sd-space-1);
+  margin-bottom: var(--sd-space-4);
+}
+.sd-setting__label {
+  font-size: var(--sd-font-size-xs);
+  letter-spacing: var(--sd-tracking-wider);
+  text-transform: uppercase;
+  color: var(--sd-color-label);
+}
+.sd-setting__required {
+  color: var(--sd-color-accent-2);
+}
+.sd-setting__row {
+  display: flex;
+  gap: var(--sd-space-2);
+  align-items: center;
+}
+.sd-setting__help {
+  font-size: var(--sd-font-size-xs);
+  color: var(--sd-color-text-muted);
+}
+.sd-setting__ok {
+  color: var(--sd-color-success);
+}
+.sd-setting__error {
+  color: var(--sd-color-critical);
+  font-weight: 600;
+}
+.sd-settings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sd-space-3);
+  align-items: center;
+}
+.sd-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: var(--sd-space-3);
+  margin: var(--sd-space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sd-images__item {
+  display: grid;
+  justify-items: center;
+  gap: var(--sd-space-1);
+  padding: var(--sd-space-2);
+  border: var(--sd-border) solid var(--sd-color-line-faint);
+  background: var(--sd-color-surface-sunken);
+}
+.sd-images__preview {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.sd-images__name {
+  font-family: var(--sd-font-mono);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .sd-settings__daemon > div {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+/* ---------- Custom keys editor (H15-29) ---------- */
+
+.sd-keys__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 7rem));
+  gap: var(--sd-space-3);
+  margin-bottom: var(--sd-space-4);
+}
+.sd-keys__cell[data-selected] .sd-keytile {
+  outline: 2px solid var(--sd-color-accent-2);
+  outline-offset: 2px;
+}
+.sd-keys__knobs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sd-space-3);
+  align-items: center;
+}
+.sd-slot__title {
+  margin: 0 0 var(--sd-space-3);
+  font-size: var(--sd-font-size-sm);
+  letter-spacing: var(--sd-tracking-wider);
+  text-transform: uppercase;
+  color: var(--sd-color-accent-2);
+}
+.sd-action {
+  display: grid;
+  gap: 0;
+}
+.sd-action[data-depth="1"],
+.sd-action[data-depth="2"],
+.sd-action[data-depth="3"] {
+  padding-left: var(--sd-space-3);
+  border-left: var(--sd-border) solid var(--sd-color-line-faint);
+}
+.sd-action__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--sd-space-3);
+}
+.sd-action__method {
+  max-width: 9rem;
+}
+.sd-action__text {
+  min-height: calc(var(--sd-touch) * 1.5);
+  padding-top: var(--sd-space-2);
+  resize: vertical;
+}
+.sd-action__steps,
+.sd-action__toggle {
+  display: grid;
+  gap: var(--sd-space-3);
+  margin-bottom: var(--sd-space-4);
+}
+.sd-action__step {
+  padding: var(--sd-space-3);
+  border: var(--sd-border) solid var(--sd-color-line-faint);
+  background: var(--sd-color-surface-sunken);
+}
+.sd-action__step-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sd-space-2);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sd-space-2);
+}
+.sd-action__step-tools {
+  display: flex;
+  gap: var(--sd-space-2);
+}
+.sd-action__side {
+  margin: 0 0 var(--sd-space-3);
+  padding: var(--sd-space-3);
+  border: var(--sd-border) solid var(--sd-color-line-faint);
+}
+select.sd-input {
+  font-family: inherit;
+}
+@media (max-width: 480px) {
+  .sd-keys__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Network: Wi-Fi and Bluetooth (H15-38) ---------- */
+
+.sd-netlist {
+  display: grid;
+  gap: var(--sd-space-2);
+  margin: var(--sd-space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sd-netlist__item {
+  border: var(--sd-border) solid var(--sd-color-line-faint);
+  background: var(--sd-color-surface-sunken);
+}
+.sd-netlist__item[data-active] {
+  border-color: var(--sd-color-accent-2);
+}
+.sd-netlist__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sd-space-2);
+  align-items: center;
+  width: 100%;
+  min-height: var(--sd-touch);
+  padding: var(--sd-space-2) var(--sd-space-3);
+  border: 0;
+  background: none;
+  color: var(--sd-color-text);
+  font: inherit;
+  text-align: left;
+}
+button.sd-netlist__head {
+  cursor: pointer;
+}
+button.sd-netlist__head:hover {
+  background: var(--sd-color-hover);
+}
+.sd-netlist__signal {
+  min-width: 3ch;
+  font-family: var(--sd-font-mono);
+  color: var(--sd-color-accent);
+}
+.sd-netlist__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.sd-netlist__address {
+  margin-left: auto;
+  font-family: var(--sd-font-mono);
+}
+.sd-netlist__form {
+  padding: 0 var(--sd-space-3) var(--sd-space-3);
+}
+
+/* ---------- Settings sections (H15-42) ---------- */
+
+.sd-settings-layout {
+  display: grid;
+  grid-template-columns: 12rem minmax(0, 48rem);
+  gap: var(--sd-space-5, 1.5rem);
+  align-items: start;
+}
+.sd-settings-nav {
+  position: sticky;
+  top: var(--sd-space-4);
+  display: grid;
+  gap: var(--sd-space-1);
+}
+.sd-settings-nav a {
+  display: flex;
+  align-items: center;
+  min-height: var(--sd-touch);
+  padding: 0 var(--sd-space-3);
+  border-left: var(--sd-border) solid var(--sd-color-line-faint);
+  color: var(--sd-color-text-muted);
+  font-size: var(--sd-font-size-xs);
+  letter-spacing: var(--sd-tracking-wider);
+  text-transform: uppercase;
+  text-decoration: none;
+}
+.sd-settings-nav a:hover {
+  background: var(--sd-color-hover);
+  color: var(--sd-color-text);
+}
+.sd-settings-nav a[aria-current="page"] {
+  border-left-color: var(--sd-color-accent);
+  color: var(--sd-color-accent);
+  background: var(--sd-color-accent-faint);
+}
+.sd-trial {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sd-space-3);
+  align-items: center;
+  margin-bottom: var(--sd-space-4);
+  padding: var(--sd-space-3);
+  border: var(--sd-border) solid var(--sd-color-accent-2);
+  background: var(--sd-color-surface-raised);
+}
+@media (max-width: 720px) {
+  .sd-settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sd-settings-nav {
+    position: static;
+    display: flex;
+    overflow-x: auto;
+    gap: 0;
+    border-bottom: var(--sd-border) solid var(--sd-color-line-faint);
+  }
+  .sd-settings-nav a {
+    flex: none;
+    border-left: 0;
+    border-bottom: 2px solid transparent;
+  }
+  .sd-settings-nav a[aria-current="page"] {
+    border-bottom-color: var(--sd-color-accent);
+  }
+}
+
+/* ---------- Addresses and Wi-Fi mode (H15-44) ---------- */
+
+.sd-addresses {
+  display: grid;
+  gap: var(--sd-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sd-addresses code {
+  font-family: var(--sd-font-mono);
+  overflow-wrap: anywhere;
+}
+label.sd-netlist__head {
+  cursor: pointer;
+}
+label.sd-netlist__head input {
+  accent-color: var(--sd-color-accent);
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* ---------- Built-in icons (H15-48) ---------- */
+
+.sd-icons {
+  margin-top: var(--sd-space-5);
+}
+.sd-icons section {
+  margin-top: var(--sd-space-3);
+}
+.sd-icons__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: var(--sd-space-2);
+  margin: var(--sd-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sd-icons__item {
+  display: grid;
+  justify-items: center;
+  gap: var(--sd-space-1);
+  padding: var(--sd-space-2) var(--sd-space-1);
+}
+.sd-icons__name {
+  font-family: var(--sd-font-mono);
+  font-size: var(--sd-font-size-xs);
+  color: var(--sd-color-text-muted);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* Bluetooth device details (H15-49) */
+.sd-btdetail {
+  display: grid;
+}
+.sd-btdetail__codec {
+  display: grid;
+  gap: var(--sd-space-2);
+  margin-top: var(--sd-space-3);
+}
+.sd-btdetail__profiles {
+  margin: 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: var(--sd-space-1);
+}
+.sd-btdetail__profiles code {
+  overflow-wrap: anywhere;
+}
+
+/* Voice settings (H15-68): live meters of the wake word, uploads */
+.sd-voice__live {
+  display: grid;
+  gap: var(--sd-space-3);
+  overflow-wrap: anywhere;
+}
+.sd-voice__meter {
+  display: grid;
+  grid-template-columns: minmax(6rem, auto) 1fr auto;
+  align-items: center;
+  gap: var(--sd-space-3);
+}
+.sd-voice__upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--sd-space-3);
+  margin: var(--sd-space-3) 0;
+}
+.sd-voice__upload .sd-setting__label {
+  display: grid;
+  gap: var(--sd-space-1);
+}
+.sd-voice__uploads {
+  margin: var(--sd-space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--sd-space-2);
+}
+.sd-voice__uploads li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sd-space-3);
+}
+@media (max-width: 40rem) {
+  .sd-voice__meter {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Output priority (H15-79) */
+.sd-priority {
+  margin: var(--sd-space-3) 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--sd-space-2);
+}
+.sd-priority li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sd-space-2);
+}
+.sd-priority__rank {
+  min-width: 1.5em;
+  font-family: var(--sd-font-mono);
+  color: var(--sd-color-accent);
+}
+.sd-priority__label {
+  flex: 1;
+  min-width: 8rem;
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,24 @@
+[package]
+name = "player"
+description = "The built-in Lyrion player's audio side: decode (H15-56) and output (H15-47)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+arc-swap = "1.9"
+bytes = "1"
+rubato = "5.0.1"
+slimproto = { path = "../slimproto" }
+symphonia = { version = "0.6.1", default-features = false, features = ["flac", "mp3"] }
+thiserror.workspace = true
+tokio = { workspace = true, features = ["rt", "sync", "macros"] }
+tracing.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+anyhow.workspace = true
+pulseaudio = "0.3.2"

@@ -1,0 +1,18 @@
+[package]
+name = "streamdock-proto"
+description = "Generated protobuf types and Connect service stubs for the streamdockd API (streamdock.v1)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+buffa = "0.9"
+connectrpc = "0.9"
+serde = { version = "1.0.229", features = ["derive"] }
+
+[lints]
+workspace = true
+
+[build-dependencies]
+connectrpc-build = "0.9"
